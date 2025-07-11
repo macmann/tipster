@@ -10,7 +10,7 @@
  * Build for production and start on port 3000:
  *   npm run build && npm start
  *
- * Backend API routes are served from /api in this same server.
+ * Requires backend running at http://localhost:4000 for API routes.
  */
 
 import { useState, useEffect } from 'react';
@@ -29,7 +29,7 @@ export default function Home() {
 
   async function fetchData(tab) {
     setLoading(true);
-    const res = await fetch(`/api/matches-${tab}`);
+    const res = await fetch(`http://localhost:4000/matches-${tab}`);
     const data = await res.json();
     setMatches(data);
     setLoading(false);

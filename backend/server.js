@@ -7,11 +7,11 @@
  * Start the server on port 4000 (for local development):
  *   npm start
  *
- * Alternatively, the same functionality is available via Next.js API routes
- * in `frontend/pages/api`. Deploy only the frontend service if you cannot run
- * two servers.
- *
  * Requires .env file with API_FOOTBALL_KEY=<your api key>
+ *
+ * (Alternatively, the same functionality is available via Next.js API routes
+ * in `frontend/pages/api`. Deploy only the frontend service if you cannot run
+ * two servers.)
  */
 
 import express from 'express';
@@ -107,4 +107,3 @@ const PORT = 4000;
 app.listen(PORT, () => {
   console.log(`Backend running on port ${PORT}`);
 });
-
