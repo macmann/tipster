@@ -6,6 +6,11 @@
  *
  * Start development server on port 3000:
  *   npm run dev
+ *
+ * Build for production and start on port 3000:
+ *   npm run build && npm start
+ *
+ * Requires backend running at http://localhost:4000 for API routes.
  */
 
 import { useState, useEffect } from 'react';
