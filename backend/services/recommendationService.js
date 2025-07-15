@@ -46,7 +46,13 @@ async function recommendForUser(userId, date = new Date()) {
     } else {
       rationale.push('No minOdds rule');
     }
-    recommendations.push({ ...match, valueScore, rationale: rationale.join('; ') });
+    recommendations.push({
+      ...match,
+      valueScore,
+      rationale: rationale.join('; '),
+      recommendedBet: 'Home Win',
+      odd: oddNum || null
+    });
   }
 
   recommendations.sort((a, b) => b.valueScore - a.valueScore);
