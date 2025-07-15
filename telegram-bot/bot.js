@@ -37,14 +37,51 @@ bot.onText(/\/start/, async (msg) => {
   }
 });
 
+function formatOdds(match) {
+  const values =
+    match.odds?.[0]?.bookmakers?.[0]?.bets?.[0]?.values || [];
+  return (
+    values.map((v) => `${v.value || v.name}: ${v.odd}`).join(', ') || 'N/A'
+  );
+}
+
 bot.onText(/\/today/, async (msg) => {
   const chatId = msg.chat.id;
   try {
     const res = await axios.get('http://localhost:4000/matches-today');
     const lines = (res.data || [])
       .slice(0, 5)
-      .map((m) => `${m.teams.home.name} vs ${m.teams.away.name}`)
-      .join('\n');
+      .map((m) => {
+        const kickoff = m.fixture?.date
+          ? new Date(m.fixture.date).toLocaleString()
+          : '-';
+        return `${m.teams.home.name} vs ${m.teams.away.name} (${kickoff})\nOdds: ${formatOdds(
+          m
+        )}`;
+      })
+      .join('\n\n');
+    bot.sendMessage(chatId, lines || 'No matches found.');
+  } catch (err) {
+    console.error('Error fetching matches:', err);
+    bot.sendMessage(chatId, 'Failed to fetch matches.');
+  }
+});
+
+bot.onText(/\/tomorrow/, async (msg) => {
+  const chatId = msg.chat.id;
+  try {
+    const res = await axios.get('http://localhost:4000/matches-tomorrow');
+    const lines = (res.data || [])
+      .slice(0, 5)
+      .map((m) => {
+        const kickoff = m.fixture?.date
+          ? new Date(m.fixture.date).toLocaleString()
+          : '-';
+        return `${m.teams.home.name} vs ${m.teams.away.name} (${kickoff})\nOdds: ${formatOdds(
+          m
+        )}`;
+      })
+      .join('\n\n');
     bot.sendMessage(chatId, lines || 'No matches found.');
   } catch (err) {
     console.error('Error fetching matches:', err);
@@ -61,8 +98,12 @@ bot.onText(/\/recommend/, async (msg) => {
     });
     const lines = (res.data || [])
       .slice(0, 5)
-      .map((r) => `${r.teams.home.name} vs ${r.teams.away.name} - ${r.recommendedBet} @ ${r.odd}`)
-      .join('\n');
+      .map((r) => {
+        const odd = r.odd ? r.odd : 'N/A';
+        const rationale = r.rationale ? `Reason: ${r.rationale}` : '';
+        return `${r.teams.home.name} vs ${r.teams.away.name}\nBet: ${r.recommendedBet} @ ${odd}\n${rationale}`;
+      })
+      .join('\n\n');
     bot.sendMessage(chatId, lines || 'No recommendations found.');
   } catch (err) {
     console.error('Error fetching recommendations:', err);
@@ -70,9 +111,21 @@ bot.onText(/\/recommend/, async (msg) => {
   }
 });
 
-bot.onText(/\/rules/, async (msg) => {
+bot.onText(/\/rules(?:\s+(.+))?/, async (msg, match) => {
   const chatId = msg.chat.id;
   const telegramId = String(msg.from.id);
+  const payload = match[1];
+  if (payload) {
+    try {
+      const rules = JSON.parse(payload);
+      await axios.post(`http://localhost:4000/user/${telegramId}/rules`, rules);
+      bot.sendMessage(chatId, 'Rules updated.');
+    } catch (err) {
+      console.error('Error updating rules:', err);
+      bot.sendMessage(chatId, 'Failed to update rules. Make sure the format is valid JSON.');
+    }
+    return;
+  }
   try {
     const res = await axios.get(`http://localhost:4000/user/${telegramId}/rules`);
     if (res.data && res.data.rules) {
