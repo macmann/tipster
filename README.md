@@ -19,3 +19,13 @@ The Express server in `backend` exposes the following endpoints:
 - `POST /user/:id/rules` – save or update rules for a user.
 - `GET /user/:id/rules` – retrieve rules for a user.
 - `GET /results?date=YYYY-MM-DD` – fetch completed match results for the given date (defaults to today).
+
+## Telegram Bot Commands
+
+The bot connects to the backend API and supports several commands:
+
+- `/today` – show today's matches with basic odds information.
+- `/tomorrow` – list tomorrow's matches and odds.
+- `/recommend` – get bet recommendations along with reasoning based on your saved rules.
+- `/results [YYYY-MM-DD]` – show final scores for the given day (defaults to today).
+- `/rules` – display current rules. Send `/rules {"minOdds":2}` to update your configuration using JSON.
