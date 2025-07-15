@@ -1,31 +1,98 @@
-# Monorepo Project
+# Tipster
 
-This repository contains three Node.js projects managed as workspaces:
+Tipster is a simple football tipping toolkit built as a Node.js monorepo. It contains an Express backend, a Next.js web frontend and a Telegram bot. All services share a MongoDB database for storing users and custom betting rules.
 
-- **backend** – Express API service.
-- **frontend** – Next.js web application.
-- **telegram-bot** – Telegram bot service.
+## Features
 
-Each folder contains its own `package.json` created with `npm init -y`. The source files are placeholders for further development.
+- Fetch fixtures and odds from the API-Football service
+- Store user specific rules such as minimum odds
+- Generate bet recommendations based on those rules
+- Web UI to view matches and tips
+- Telegram bot commands for quick access
 
-## Backend API
+## Repository layout
 
-The Express server in `backend` exposes the following endpoints:
+```
+backend/       Express API service
+frontend/      Next.js web application
+telegram-bot/  Telegram bot
+```
 
-- `GET /matches-today` – return today's matches enriched with odds.
-- `GET /matches-tomorrow` – return tomorrow's matches and odds.
-- `GET /matches-week` – return matches with odds for the next seven days.
-- `GET /recommend?userId=ID` – return recommended bets for the given user based on their stored rules.
-- `POST /user/:id/rules` – save or update rules for a user.
-- `GET /user/:id/rules` – retrieve rules for a user.
-- `GET /results?date=YYYY-MM-DD` – fetch completed match results for the given date (defaults to today).
+## Environment variables
 
-## Telegram Bot Commands
+### backend/.env
+Copy `backend/.env.example` to `backend/.env` and provide your values:
 
-The bot connects to the backend API and supports several commands:
+```
+MONGODB_URI=mongodb://localhost:27017/tipster
+PORT=4000
+API_FOOTBALL_KEY=<your-api-football-key>
+```
 
-- `/today` – show today's matches with basic odds information.
-- `/tomorrow` – list tomorrow's matches and odds.
-- `/recommend` – get bet recommendations along with reasoning based on your saved rules.
-- `/results [YYYY-MM-DD]` – show final scores for the given day (defaults to today).
-- `/rules` – display current rules. Send `/rules {"minOdds":2}` to update your configuration using JSON.
+### telegram-bot/.env
+Create `telegram-bot/.env` with the following variables:
+
+```
+BOT_TOKEN=<your-telegram-bot-token>
+MONGODB_URI=mongodb://localhost:27017/tipster
+```
+
+### frontend/.env (optional)
+If the frontend should target a different API URL, set:
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:4000
+```
+
+## Running the services
+
+### Backend
+
+```
+cd backend
+npm install
+npm start                # starts on http://localhost:4000
+```
+
+For production you can run `NODE_ENV=production npm start`.
+
+### Frontend
+
+```
+cd frontend
+npm install
+npx next dev             # development server on http://localhost:3000
+```
+
+To build for production:
+
+```
+npx next build
+npx next start
+```
+
+### Telegram bot
+
+```
+cd telegram-bot
+npm install
+node bot.js
+```
+
+Use `NODE_ENV=production node bot.js` when deploying.
+
+## Example API usage
+
+```
+# Get today's matches
+curl http://localhost:4000/matches-today
+
+# Save rules for a user
+curl -X POST http://localhost:4000/user/123/rules \
+  -H 'Content-Type: application/json' \
+  -d '{"minOdds":2}'
+
+# Request recommendations for that user
+curl http://localhost:4000/recommend?userId=123
+```
+
