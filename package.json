@@ -1,5 +1,9 @@
 {
   "name": "tipster-root",
   "private": true,
-  "workspaces": ["backend", "frontend"]
+  "workspaces": [
+    "backend",
+    "frontend",
+    "telegram-bot"
+  ]
 }
