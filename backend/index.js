@@ -48,7 +48,7 @@ async function enrichMatchesWithOdds(matches) {
   );
 }
 
-app.get('/matches-today', async (req, res) => {
+app.get('/matches-today', async (req, res, next) => {
   const today = formatDate(new Date());
   try {
     const data = await getMatches(today);
@@ -56,11 +56,12 @@ app.get('/matches-today', async (req, res) => {
     res.json(enriched);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to fetch matches' });
+    err.message = "Unable to fetch today's matches. Please try again later.";
+    next(err);
   }
 });
 
-app.get('/matches-tomorrow', async (req, res) => {
+app.get('/matches-tomorrow', async (req, res, next) => {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   const date = formatDate(d);
@@ -70,11 +71,12 @@ app.get('/matches-tomorrow', async (req, res) => {
     res.json(enriched);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to fetch matches' });
+    err.message = 'Unable to fetch tomorrow\'s matches. Please try again later.';
+    next(err);
   }
 });
 
-app.get('/matches-week', async (req, res) => {
+app.get('/matches-week', async (req, res, next) => {
   const today = new Date();
   const all = [];
   try {
@@ -88,11 +90,12 @@ app.get('/matches-week', async (req, res) => {
     res.json(all);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to fetch matches' });
+    err.message = 'Unable to fetch this week\'s matches. Please try again later.';
+    next(err);
   }
 });
 
-app.get('/recommend', async (req, res) => {
+app.get('/recommend', async (req, res, next) => {
   const userId = req.query.userId;
   const dateStr = req.query.date;
   if (!userId) return res.status(400).json({ error: 'userId query required' });
@@ -102,11 +105,12 @@ app.get('/recommend', async (req, res) => {
     res.json(recommendations);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to generate recommendations' });
+    err.message = 'Failed to generate recommendations. Please try again later.';
+    next(err);
   }
 });
 
-app.post('/user/:id/rules', async (req, res) => {
+app.post('/user/:id/rules', async (req, res, next) => {
   const userId = req.params.id;
   try {
     const doc = await UserRule.findOneAndUpdate(
@@ -117,11 +121,12 @@ app.post('/user/:id/rules', async (req, res) => {
     res.json(doc);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to save rules' });
+    err.message = 'Failed to save rules. Please try again later.';
+    next(err);
   }
 });
 
-app.get('/user/:id/rules', async (req, res) => {
+app.get('/user/:id/rules', async (req, res, next) => {
   const userId = req.params.id;
   try {
     const doc = await UserRule.findOne({ userId });
@@ -129,19 +134,35 @@ app.get('/user/:id/rules', async (req, res) => {
     res.json(doc);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to fetch rules' });
+    err.message = 'Failed to fetch rules. Please try again later.';
+    next(err);
   }
 });
 
-app.get('/results', async (req, res) => {
+app.get('/results', async (req, res, next) => {
   const date = req.query.date || formatDate(new Date());
   try {
     const data = await getResults(date);
     res.json(data);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Failed to fetch results' });
+    err.message = 'Failed to fetch results. Please try again later.';
+    next(err);
   }
+});
+
+// 404 handler for unknown routes
+app.use((req, res) => {
+  res.status(404).json({ error: 'Endpoint not found' });
+});
+
+// Global error handler
+app.use((err, req, res, next) => {
+  console.error(err);
+  if (res.headersSent) {
+    return next(err);
+  }
+  res.status(err.status || 500).json({ error: err.message || 'Server error' });
 });
 
 const PORT = process.env.PORT || 4000;
