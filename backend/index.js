@@ -7,6 +7,7 @@ const {
   getOdds,
   getResults
 } = require('./services/apiFootballService');
+const { recommendForUser } = require('./services/recommendationService');
 const UserRule = require('./models/UserRule');
 
 const app = express();
@@ -95,21 +96,8 @@ app.get('/recommend', async (req, res) => {
   const userId = req.query.userId;
   if (!userId) return res.status(400).json({ error: 'userId query required' });
   try {
-    const userRule = await UserRule.findOne({ userId });
-    if (!userRule) return res.status(404).json({ error: 'Rules not found' });
-    const rules = userRule.rules || {};
-
-    const todayData = await getMatches(formatDate(new Date()));
-    const matches = await enrichMatchesWithOdds(todayData.response);
-
-    const minOdds = rules.minOdds ? parseFloat(rules.minOdds) : null;
-    const recommended = matches.filter(m => {
-      if (!minOdds) return true;
-      const oddStr = m.odds?.[0]?.bookmakers?.[0]?.bets?.[0]?.values?.[0]?.odd;
-      const oddNum = parseFloat(oddStr);
-      return oddNum && oddNum >= minOdds;
-    });
-    res.json(recommended);
+    const recommendations = await recommendForUser(userId);
+    res.json(recommendations);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Failed to generate recommendations' });
