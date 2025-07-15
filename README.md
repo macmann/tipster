@@ -114,6 +114,31 @@ Example `.env.example` files are provided in the `backend` and `telegram-bot` fo
 
 ### telegram-bot/.env
 
-- `MONGODB_URI` – MongoDB connection string  
+- `MONGODB_URI` – MongoDB connection string
 - `BOT_TOKEN` – token from BotFather (also exported as `BOT_TOKEN`)
+
+## Deployment
+
+### MongoDB Atlas
+- Sign up for a free MongoDB Atlas account and create a cluster.
+- Create a database named `tipster` and whitelist your server's IP.
+- Copy the connection string and use it as `MONGODB_URI` in your `.env` files.
+
+### Backend (Render or Heroku)
+- Push the `backend` folder to a Git repository.
+- Create a new service on [Render](https://render.com/) or [Heroku](https://www.heroku.com/) and connect the repo.
+- Add the environment variables from `backend/.env`.
+- Deploy the service and note the public URL.
+
+### Frontend (Vercel or Netlify)
+- Push the `frontend` folder to a Git repository.
+- Import the repo in [Vercel](https://vercel.com/) or [Netlify](https://www.netlify.com/).
+- Set `NEXT_PUBLIC_API_URL` to your backend URL if it differs from the default.
+- Deploy to obtain your web app's URL.
+
+### Telegram bot
+- Push `telegram-bot` to a Git repository or copy it to your own server.
+- On Render, create a new service with `node bot.js` as the start command.
+- Provide `BOT_TOKEN` and `MONGODB_URI` as environment variables.
+- If self-hosting, ensure the bot runs on a public IP or domain.
 
