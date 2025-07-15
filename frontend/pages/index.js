@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import RuleBuilder from '../components/RuleBuilder';
 
 const TABS = {
   today: 'Today',
@@ -48,6 +49,7 @@ export default function Home() {
   return (
     <div className="container">
       <h1>Match List</h1>
+      <RuleBuilder userId="1" />
       <div className="tabs">
         {Object.entries(TABS).map(([key, label]) => (
           <button
