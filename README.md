@@ -96,3 +96,24 @@ curl -X POST http://localhost:4000/user/123/rules \
 curl http://localhost:4000/recommend?userId=123
 ```
 
+- `/today` – show today's matches with basic odds information.
+- `/tomorrow` – list tomorrow's matches and odds.
+- `/recommend` – get bet recommendations along with reasoning based on your saved rules.
+- `/results [YYYY-MM-DD]` – show final scores for the given day (defaults to today).
+- `/rules` – display current rules. Send `/rules {"minOdds":2}` to update your configuration using JSON.
+
+## Environment Setup
+
+Example `.env.example` files are provided in the `backend` and `telegram-bot` folders. Copy these files to `.env` and replace the placeholder values with your credentials.
+
+### backend/.env
+
+- `MONGODB_URI` – MongoDB connection string  
+- `API_FOOTBALL_KEY` – API key from api-football  
+- `PORT` – optional port for the Express server
+
+### telegram-bot/.env
+
+- `MONGODB_URI` – MongoDB connection string  
+- `BOT_TOKEN` – token from BotFather (also exported as `BOT_TOKEN`)
+
