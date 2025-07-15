@@ -48,6 +48,9 @@ export default function Home() {
 
   return (
     <div className="container">
+      <nav className="nav">
+        <a href="/">Matches</a> | <a href="/recommendations">Recommendations</a>
+      </nav>
       <h1>Match List</h1>
       <RuleBuilder userId="1" />
       <div className="tabs">
@@ -94,6 +97,9 @@ export default function Home() {
       <style jsx>{`
         .container {
           padding: 1rem;
+        }
+        .nav {
+          margin-bottom: 1rem;
         }
         h1 {
           text-align: center;

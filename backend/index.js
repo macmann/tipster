@@ -94,9 +94,11 @@ app.get('/matches-week', async (req, res) => {
 
 app.get('/recommend', async (req, res) => {
   const userId = req.query.userId;
+  const dateStr = req.query.date;
   if (!userId) return res.status(400).json({ error: 'userId query required' });
+  const date = dateStr ? new Date(dateStr) : new Date();
   try {
-    const recommendations = await recommendForUser(userId);
+    const recommendations = await recommendForUser(userId, date);
     res.json(recommendations);
   } catch (err) {
     console.error(err);
