@@ -23,13 +23,16 @@ export default function Home() {
             ? 'matches-week'
             : `matches-${tab}`;
         const res = await fetch(`http://localhost:4000/${endpoint}`);
+        let data;
         if (!res.ok) {
-          throw new Error('Failed to fetch');
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Failed to fetch matches');
+        } else {
+          data = await res.json();
         }
-        const data = await res.json();
         setMatches(Array.isArray(data) ? data : []);
       } catch (err) {
-        setError(err.message);
+        setError(err.message || 'Something went wrong');
       } finally {
         setLoading(false);
       }

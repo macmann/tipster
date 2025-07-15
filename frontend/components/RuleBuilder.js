@@ -7,9 +7,11 @@ export default function RuleBuilder({ userId }) {
   const [league, setLeague] = useState('');
   const [status, setStatus] = useState('');
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
 
   useEffect(() => {
     async function fetchRules() {
+      setLoadError('');
       try {
         const res = await fetch(`http://localhost:4000/user/${userId}/rules`);
         if (res.ok) {
@@ -19,9 +21,13 @@ export default function RuleBuilder({ userId }) {
           setMaxOdds(r.maxOdds || '');
           setValueScore(r.valueScore || '');
           setLeague(r.league || '');
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          setLoadError(errData.error || 'Failed to load rules');
         }
       } catch (err) {
         console.error('Failed to load rules', err);
+        setLoadError('Failed to load rules');
       }
     }
     fetchRules();
@@ -41,7 +47,8 @@ export default function RuleBuilder({ userId }) {
       if (res.ok) {
         setStatus('Saved');
       } else {
-        setStatus('Error saving rules');
+        const errData = await res.json().catch(() => ({}));
+        setStatus(errData.error || 'Error saving rules');
       }
     } catch (err) {
       console.error('Failed to save rules', err);
@@ -104,6 +111,7 @@ export default function RuleBuilder({ userId }) {
           <li>No rules set</li>
         )}
       </ul>
+      {loadError && <p className="error">{loadError}</p>}
       {status && <p className="status">{status}</p>}
       <style jsx>{`
         .rule-builder {
@@ -116,6 +124,9 @@ export default function RuleBuilder({ userId }) {
         }
         label {
           margin-right: 0.5rem;
+        }
+        .error {
+          color: red;
         }
         .status {
           margin-top: 0.5rem;

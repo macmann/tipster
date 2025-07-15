@@ -13,11 +13,16 @@ export default function Recommendations() {
       setError(null);
       try {
         const res = await fetch(`http://localhost:4000/recommend?userId=${userId}`);
-        if (!res.ok) throw new Error('Failed to fetch');
-        const data = await res.json();
+        let data;
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({}));
+          throw new Error(errData.error || 'Failed to fetch recommendations');
+        } else {
+          data = await res.json();
+        }
         setRecs(Array.isArray(data) ? data : []);
       } catch (err) {
-        setError(err.message);
+        setError(err.message || 'Something went wrong');
       } finally {
         setLoading(false);
       }
