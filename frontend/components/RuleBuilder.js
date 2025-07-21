@@ -59,45 +59,49 @@ export default function RuleBuilder({ userId }) {
   }
 
   return (
-    <div className="rule-builder">
-      <h2>Rule Builder</h2>
-      <form onSubmit={handleSubmit}>
+    <div className="mb-8 border p-4">
+      <h2 className="text-xl font-semibold mb-2">Rule Builder</h2>
+      <form onSubmit={handleSubmit} className="space-y-2">
         <div>
-          <label>Min Odds: </label>
+          <label className="mr-2">Min Odds:</label>
           <input
             type="number"
             step="0.01"
             value={minOdds}
             onChange={(e) => setMinOdds(e.target.value)}
+            className="border px-1"
           />
         </div>
         <div>
-          <label>Max Odds: </label>
+          <label className="mr-2">Max Odds:</label>
           <input
             type="number"
             step="0.01"
             value={maxOdds}
             onChange={(e) => setMaxOdds(e.target.value)}
+            className="border px-1"
           />
         </div>
         <div>
-          <label>Value Score Threshold: </label>
+          <label className="mr-2">Value Score Threshold:</label>
           <input
             type="number"
             step="0.01"
             value={valueScore}
             onChange={(e) => setValueScore(e.target.value)}
+            className="border px-1"
           />
         </div>
         <div>
-          <label>League: </label>
+          <label className="mr-2">League:</label>
           <input
             type="text"
             value={league}
             onChange={(e) => setLeague(e.target.value)}
+            className="border px-1"
           />
         </div>
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading} className="px-2 py-1 border">
           {loading ? 'Saving...' : 'Save Rules'}
         </button>
       </form>
@@ -111,28 +115,8 @@ export default function RuleBuilder({ userId }) {
           <li>No rules set</li>
         )}
       </ul>
-      {loadError && <p className="error">{loadError}</p>}
-      {status && <p className="status">{status}</p>}
-      <style jsx>{`
-        .rule-builder {
-          margin-bottom: 2rem;
-          border: 1px solid #ccc;
-          padding: 1rem;
-        }
-        form div {
-          margin-bottom: 0.5rem;
-        }
-        label {
-          margin-right: 0.5rem;
-        }
-        .error {
-          color: red;
-        }
-        .status {
-          margin-top: 0.5rem;
-          color: green;
-        }
-      `}</style>
+      {loadError && <p className="text-red-600">{loadError}</p>}
+      {status && <p className="text-green-600 mt-1">{status}</p>}
     </div>
   );
 }
