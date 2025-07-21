@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import RuleBuilder from '../components/RuleBuilder';
+import { getMyanmarBet } from '../utils/myanmarOdds';
 
 const TABS = {
   today: 'Today',
@@ -75,7 +76,14 @@ export default function Home() {
   };
 
   const renderMyanmarBet = (match) => {
-    const bet = match.myanmarBet;
+    let bet = match.myanmarBet;
+    if (!bet && match.odds) {
+      try {
+        bet = getMyanmarBet(match.odds);
+      } catch (_) {
+        // ignore parsing errors
+      }
+    }
     if (!bet) return 'N/A';
     return `${bet.type} (${bet.handicap})`;
   };
