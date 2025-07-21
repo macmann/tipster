@@ -76,15 +76,17 @@ export default function Recommendations() {
   };
 
   return (
-    <div className="container">
-      <nav className="nav">
-        <a href="/">Matches</a> | <a href="/recommendations">Recommendations</a>
+    <div className="p-4">
+      <nav className="mb-4">
+        <a href="/" className="mr-2">Matches</a>
+        |
+        <a href="/recommendations" className="ml-2">Recommendations</a>
       </nav>
-      <h1>Recommendations</h1>
+      <h1 className="text-center text-2xl font-semibold mb-4">Recommendations</h1>
       {loading && <p>Loading...</p>}
-      {error && <p className="error">Error: {error}</p>}
+      {error && <p className="text-red-600">Error: {error}</p>}
       {!loading && !error && (
-        <table>
+        <table className="w-full border-collapse">
           <thead>
             <tr>
               <th>League</th>
@@ -98,14 +100,14 @@ export default function Recommendations() {
           </thead>
           <tbody>
             {recs.map(r => (
-              <tr key={r.fixture?.id}>
-                <td>{r.league?.name || '-'}</td>
-                <td>{r.teams?.home?.name || '-'}</td>
-                <td>{r.teams?.away?.name || '-'}</td>
-                <td>{r.fixture?.date ? new Date(r.fixture.date).toLocaleString() : '-'}</td>
-                <td>{r.recommendedBet || 'Home Win'}</td>
-                <td>{renderOdds(r)}</td>
-                <td>{r.rationale || '-'}</td>
+              <tr key={r.fixture?.id} className="border-b">
+                <td className="p-1 border">{r.league?.name || '-'}</td>
+                <td className="p-1 border">{r.teams?.home?.name || '-'}</td>
+                <td className="p-1 border">{r.teams?.away?.name || '-'}</td>
+                <td className="p-1 border">{r.fixture?.date ? new Date(r.fixture.date).toLocaleString() : '-'}</td>
+                <td className="p-1 border">{r.recommendedBet || 'Home Win'}</td>
+                <td className="p-1 border">{renderOdds(r)}</td>
+                <td className="p-1 border">{r.rationale || '-'}</td>
               </tr>
             ))}
           </tbody>
@@ -117,32 +119,6 @@ export default function Recommendations() {
           <p>Wins: {accuracy.win} Losses: {accuracy.loss} ROI: {accuracy.roi}</p>
         </div>
       )}
-      <style jsx>{`
-        .container {
-          padding: 1rem;
-        }
-        .nav {
-          margin-bottom: 1rem;
-        }
-        h1 {
-          text-align: center;
-        }
-        table {
-          width: 100%;
-          border-collapse: collapse;
-        }
-        th, td {
-          border: 1px solid #ccc;
-          padding: 0.5rem;
-          text-align: left;
-        }
-        th {
-          background: #f0f0f0;
-        }
-        .error {
-          color: red;
-        }
-      `}</style>
     </div>
   );
 }
