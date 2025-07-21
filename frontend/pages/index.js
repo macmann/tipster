@@ -12,6 +12,8 @@ export default function Home() {
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [leagueFilter, setLeagueFilter] = useState('');
+  const [leagues, setLeagues] = useState([]);
 
   useEffect(() => {
     async function fetchMatches() {
@@ -30,7 +32,12 @@ export default function Home() {
         } else {
           data = await res.json();
         }
-        setMatches(Array.isArray(data) ? data : []);
+        const arr = Array.isArray(data) ? data : [];
+        setMatches(arr);
+        const uniqueLeagues = Array.from(
+          new Set(arr.map((m) => m.league?.name).filter(Boolean))
+        );
+        setLeagues(uniqueLeagues);
       } catch (err) {
         setError(err.message || 'Something went wrong');
       } finally {
@@ -56,6 +63,25 @@ export default function Home() {
       </nav>
       <h1>Match List</h1>
       <RuleBuilder userId="1" />
+      <div className="filter">
+        <label htmlFor="league-filter">League: </label>
+        <input
+          id="league-filter"
+          type="text"
+          list="league-options"
+          value={leagueFilter}
+          onChange={(e) => setLeagueFilter(e.target.value)}
+          placeholder="Type or select league"
+        />
+        <datalist id="league-options">
+          {leagues.map((l) => (
+            <option key={l} value={l} />
+          ))}
+        </datalist>
+        {leagueFilter && (
+          <button className="clear" onClick={() => setLeagueFilter('')}>Clear</button>
+        )}
+      </div>
       <div className="tabs">
         {Object.entries(TABS).map(([key, label]) => (
           <button
@@ -83,7 +109,15 @@ export default function Home() {
             </tr>
           </thead>
           <tbody>
-            {matches.map((m) => (
+            {matches
+              .filter((m) =>
+                leagueFilter
+                  ? (m.league?.name || '')
+                      .toLowerCase()
+                      .includes(leagueFilter.toLowerCase())
+                  : true
+              )
+              .map((m) => (
               <tr key={m.fixture?.id}>
                 <td>{m.league?.name || '-'}</td>
                 <td>{m.teams?.home?.name || '-'}</td>
@@ -125,6 +159,21 @@ export default function Home() {
         }
         .error {
           color: red;
+        }
+        .filter {
+          margin-bottom: 1rem;
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+        }
+        .filter input {
+          padding: 0.25rem;
+        }
+        .filter .clear {
+          background: transparent;
+          border: none;
+          color: #0070f3;
+          cursor: pointer;
         }
         table {
           width: 100%;
