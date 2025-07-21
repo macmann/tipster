@@ -57,6 +57,23 @@ export default function Home() {
       .join(', ') || 'N/A';
   };
 
+  const renderAsianHandicap = (match) => {
+    const books = match.odds?.[0]?.bookmakers || [];
+    for (const b of books) {
+      const bet = (b.bets || []).find((x) =>
+        (x.name || '').toLowerCase().includes('asian handicap')
+      );
+      if (bet && bet.values) {
+        return (
+          bet.values
+            .map((v) => `${v.handicap || v.value || v.name}: ${v.odd}`)
+            .join(', ') || 'N/A'
+        );
+      }
+    }
+    return 'N/A';
+  };
+
   const renderMyanmarBet = (match) => {
     const bet = match.myanmarBet;
     if (!bet) return 'N/A';
@@ -129,6 +146,7 @@ export default function Home() {
               <th>Away</th>
               <th>Kickoff</th>
               <th>Odds (1X2)</th>
+              <th>Asian Handicap</th>
               <th>Myanmar Bet</th>
               <th>Your Odds</th>
               <th>Recommendation</th>
@@ -157,6 +175,7 @@ export default function Home() {
                     {m.fixture?.date ? new Date(m.fixture.date).toLocaleString() : '-'}
                   </td>
                   <td className="p-1 border">{renderOdds(m)}</td>
+                  <td className="p-1 border">{renderAsianHandicap(m)}</td>
                   <td className="p-1 border">{renderMyanmarBet(m)}</td>
                   <td className="p-1 border">N/A</td>
                   <td className="p-1 border">N/A</td>
