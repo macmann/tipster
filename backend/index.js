@@ -8,6 +8,7 @@ const {
   getResults
 } = require('./services/apiFootballService');
 const { recommendForUser } = require('./services/recommendationService');
+const { getMyanmarBet } = require('./utils/myanmarOdds');
 const UserRule = require('./models/UserRule');
 
 const app = express();
@@ -40,9 +41,10 @@ async function enrichMatchesWithOdds(matches) {
     matches.map(async (m) => {
       try {
         const odds = await getOdds(m.fixture.id);
-        return { ...m, odds: odds.response };
+        const myanmarBet = getMyanmarBet(odds.response);
+        return { ...m, odds: odds.response, myanmarBet };
       } catch (err) {
-        return { ...m, odds: [] };
+        return { ...m, odds: [], myanmarBet: null };
       }
     })
   );

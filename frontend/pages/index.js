@@ -57,6 +57,12 @@ export default function Home() {
       .join(', ') || 'N/A';
   };
 
+  const renderMyanmarBet = (match) => {
+    const bet = match.myanmarBet;
+    if (!bet) return 'N/A';
+    return `${bet.type} (${bet.handicap})`;
+  };
+
   return (
     <div className="p-4">
       <nav className="mb-4">
@@ -123,6 +129,7 @@ export default function Home() {
               <th>Away</th>
               <th>Kickoff</th>
               <th>Odds (1X2)</th>
+              <th>Myanmar Bet</th>
               <th>Your Odds</th>
               <th>Recommendation</th>
             </tr>
@@ -150,6 +157,7 @@ export default function Home() {
                     {m.fixture?.date ? new Date(m.fixture.date).toLocaleString() : '-'}
                   </td>
                   <td className="p-1 border">{renderOdds(m)}</td>
+                  <td className="p-1 border">{renderMyanmarBet(m)}</td>
                   <td className="p-1 border">N/A</td>
                   <td className="p-1 border">N/A</td>
                 </tr>
