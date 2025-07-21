@@ -22,17 +22,24 @@ function mapHandicapToMyanmar(handicap, commission = 1.0) {
   return { type, rule, payoutRate: Math.round(commission * 100) / 100 };
 }
 
+function parseHandicap(str) {
+  if (str === undefined || str === null) return NaN;
+  if (typeof str === 'number') return parseFloat(str);
+  const match = String(str).match(/-?\d+(?:\.\d+)?/);
+  return match ? parseFloat(match[0]) : NaN;
+}
+
 function extractHandicapFromOdds(odds) {
   const bookmakers = odds?.[0]?.bookmakers || [];
   for (const bookmaker of bookmakers) {
-    const bet = (bookmaker.bets || []).find(b =>
+    const bet = (bookmaker.bets || []).find((b) =>
       (b.name || '').toLowerCase().includes('asian handicap')
     );
-    if (bet && bet.values && bet.values.length) {
-      const val = bet.values[0];
-      // value may be like "-1.5" or include home/away notation
-      const h = parseFloat(val.handicap || val.value || val.name);
-      if (!Number.isNaN(h)) return h;
+    if (bet && Array.isArray(bet.values)) {
+      for (const val of bet.values) {
+        const h = parseHandicap(val.handicap ?? val.value ?? val.name);
+        if (!Number.isNaN(h)) return h;
+      }
     }
   }
   return null;
