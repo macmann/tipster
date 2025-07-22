@@ -15,7 +15,7 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [leagueFilter, setLeagueFilter] = useState('');
   const [leagues, setLeagues] = useState([]);
-  const [withOddsOnly, setWithOddsOnly] = useState(false);
+  const [withOddsOnly, setWithOddsOnly] = useState(true);
 
   useEffect(() => {
     async function fetchMatches() {
