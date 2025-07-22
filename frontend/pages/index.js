@@ -146,51 +146,36 @@ export default function Home() {
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-600">Error: {error}</p>}
       {!loading && !error && (
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th>League</th>
-              <th>Home</th>
-              <th>Away</th>
-              <th>Kickoff</th>
-              <th>Odds (1X2)</th>
-              <th>Asian Handicap</th>
-              <th>Myanmar Bet</th>
-              <th>Your Odds</th>
-              <th>Recommendation</th>
-            </tr>
-          </thead>
-          <tbody>
-            {matches
-              .filter((m) =>
-                leagueFilter
-                  ? (m.league?.name || '')
-                      .toLowerCase()
-                      .includes(leagueFilter.toLowerCase())
-                  : true
-              )
-              .filter((m) =>
-                withOddsOnly
-                  ? (m.odds?.[0]?.bookmakers?.[0]?.bets?.[0]?.values?.length ?? 0) > 0
-                  : true
-              )
-              .map((m) => (
-                <tr key={m.fixture?.id} className="border-b">
-                  <td className="p-1 border">{m.league?.name || '-'}</td>
-                  <td className="p-1 border">{m.teams?.home?.name || '-'}</td>
-                  <td className="p-1 border">{m.teams?.away?.name || '-'}</td>
-                  <td className="p-1 border">
-                    {m.fixture?.date ? new Date(m.fixture.date).toLocaleString() : '-'}
-                  </td>
-                  <td className="p-1 border">{renderOdds(m)}</td>
-                  <td className="p-1 border">{renderAsianHandicap(m)}</td>
-                  <td className="p-1 border">{renderMyanmarBet(m)}</td>
-                  <td className="p-1 border">N/A</td>
-                  <td className="p-1 border">N/A</td>
-                </tr>
-              ))}
-          </tbody>
-        </table>
+        <div className="grid gap-4 md:grid-cols-2">
+          {matches
+            .filter((m) =>
+              leagueFilter
+                ? (m.league?.name || '')
+                    .toLowerCase()
+                    .includes(leagueFilter.toLowerCase())
+                : true
+            )
+            .filter((m) =>
+              withOddsOnly
+                ? (m.odds?.[0]?.bookmakers?.[0]?.bets?.[0]?.values?.length ?? 0) > 0
+                : true
+            )
+            .map((m) => (
+              <div key={m.fixture?.id} className="border p-2 rounded shadow">
+                <h3 className="font-semibold">
+                  {m.teams?.home?.name || '-'} vs {m.teams?.away?.name || '-'}
+                </h3>
+                <p className="text-sm">{m.league?.name || '-'}</p>
+                <p className="text-sm">
+                  {m.fixture?.date ? new Date(m.fixture.date).toLocaleString() : '-'}
+                </p>
+                <p className="text-sm mb-1">Odds: {renderOdds(m)}</p>
+                <a href={`/match/${m.fixture?.id}`} className="text-blue-600 underline text-sm">
+                  View Details
+                </a>
+              </div>
+            ))}
+        </div>
       )}
     </div>
   );

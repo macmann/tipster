@@ -5,7 +5,8 @@ const cors = require('cors');
 const {
   getMatches,
   getOdds,
-  getResults
+  getResults,
+  getFixture
 } = require('./services/apiFootballService');
 const { recommendForUser } = require('./services/recommendationService');
 const { getMyanmarBet } = require('./utils/myanmarOdds');
@@ -93,6 +94,22 @@ app.get('/matches-week', async (req, res, next) => {
   } catch (err) {
     console.error(err);
     err.message = 'Unable to fetch this week\'s matches. Please try again later.';
+    next(err);
+  }
+});
+
+app.get('/match/:id', async (req, res, next) => {
+  const matchId = req.params.id;
+  try {
+    const fixtureData = await getFixture(matchId);
+    const fixture = fixtureData.response?.[0];
+    if (!fixture) return res.status(404).json({ error: 'Match not found' });
+    const oddsData = await getOdds(matchId);
+    fixture.odds = oddsData.response;
+    res.json(fixture);
+  } catch (err) {
+    console.error(err);
+    err.message = 'Failed to fetch match details. Please try again later.';
     next(err);
   }
 });
