@@ -2,6 +2,7 @@ require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const mongoose = require('mongoose');
 const axios = require('axios');
+const { Configuration, OpenAIApi } = require('openai');
 
 const User = require('./models/User');
 
@@ -9,6 +10,11 @@ const token = process.env.BOT_TOKEN;
 if (!token) {
   throw new Error('BOT_TOKEN not specified in .env');
 }
+
+const openaiKey = process.env.OPENAI_API_KEY;
+const openai = openaiKey
+  ? new OpenAIApi(new Configuration({ apiKey: openaiKey }))
+  : null;
 
 mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
@@ -43,6 +49,28 @@ function formatOdds(match) {
   return (
     values.map((v) => `${v.value || v.name}: ${v.odd}`).join(', ') || 'N/A'
   );
+}
+
+async function interpretQuery(text) {
+  if (!openai) {
+    throw new Error('OpenAI API key not configured');
+  }
+  const systemPrompt =
+    'Extract the intended date (today, tomorrow or YYYY-MM-DD) and optional team names from the user question. ' +
+    'Respond with JSON in the form {"date": "today|tomorrow|YYYY-MM-DD", "teams": ["Team A", "Team B"]} and nothing else.';
+  const resp = await openai.createChatCompletion({
+    model: 'gpt-3.5-turbo',
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: text },
+    ],
+  });
+  const content = resp.data.choices[0].message.content.trim();
+  try {
+    return JSON.parse(content);
+  } catch (e) {
+    throw new Error('Unable to parse OpenAI response');
+  }
 }
 
 bot.onText(/\/today/, async (msg) => {
@@ -153,5 +181,57 @@ bot.onText(/\/results(?:\s+(\d{4}-\d{2}-\d{2}))?/, async (msg, match) => {
   } catch (err) {
     console.error('Error fetching results:', err);
     bot.sendMessage(chatId, 'Failed to fetch results.');
+  }
+});
+
+bot.on('message', async (msg) => {
+  const text = msg.text;
+  if (!text || text.startsWith('/')) return;
+  if (!openai) return; // skip if OpenAI not configured
+
+  try {
+    const query = await interpretQuery(text);
+    let endpoint = 'http://localhost:4000/matches-today';
+    if (query.date) {
+      const d = query.date.toLowerCase();
+      if (d === 'tomorrow') endpoint = 'http://localhost:4000/matches-tomorrow';
+      else if (d !== 'today') {
+        // For arbitrary dates fallback to week matches and filter
+        endpoint = 'http://localhost:4000/matches-week';
+      }
+    }
+    const res = await axios.get(endpoint);
+    let matches = res.data || [];
+
+    if (query.date && !['today', 'tomorrow'].includes(query.date.toLowerCase())) {
+      matches = matches.filter((m) => m.fixture.date.startsWith(query.date));
+    }
+
+    if (Array.isArray(query.teams) && query.teams.length) {
+      matches = matches.filter((m) =>
+        query.teams.every((team) =>
+          `${m.teams.home.name} ${m.teams.away.name}`
+            .toLowerCase()
+            .includes(team.toLowerCase())
+        )
+      );
+    }
+
+    const lines = matches
+      .slice(0, 5)
+      .map((m) => {
+        const kickoff = m.fixture?.date
+          ? new Date(m.fixture.date).toLocaleString()
+          : '-';
+        return `${m.teams.home.name} vs ${m.teams.away.name} (${kickoff})\nOdds: ${formatOdds(
+          m
+        )}`;
+      })
+      .join('\n\n');
+
+    bot.sendMessage(msg.chat.id, lines || 'No matches found.');
+  } catch (err) {
+    console.error('Natural language error:', err);
+    bot.sendMessage(msg.chat.id, 'Sorry, I could not understand your request.');
   }
 });

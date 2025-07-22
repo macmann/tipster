@@ -36,6 +36,9 @@ npm install
 node bot.js           # starts the Telegram bot
 ```
 
+The bot can understand natural language questions about matches and odds when an
+`OPENAI_API_KEY` is provided in the `.env` file.
+
 The frontend expects the backend to run on `http://localhost:4000`.  The Telegram bot also calls the backend on this address.
 
 ## API Endpoints
