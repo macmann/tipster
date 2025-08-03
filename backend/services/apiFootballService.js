@@ -41,8 +41,16 @@ async function getResults(date) {
   });
 }
 
+async function getFixture(matchId) {
+  return fetchWithCache(`fixture_${matchId}`, async () => {
+    const response = await http.get('/fixtures', { params: { id: matchId } });
+    return response.data;
+  });
+}
+
 module.exports = {
   getMatches,
   getOdds,
-  getResults
+  getResults,
+  getFixture
 };
