@@ -2,7 +2,7 @@ require('dotenv').config();
 const TelegramBot = require('node-telegram-bot-api');
 const mongoose = require('mongoose');
 const axios = require('axios');
-const { Configuration, OpenAIApi } = require('openai');
+const OpenAI = require('openai');
 
 const User = require('./models/User');
 
@@ -13,7 +13,7 @@ if (!token) {
 
 const openaiKey = process.env.OPENAI_API_KEY;
 const openai = openaiKey
-  ? new OpenAIApi(new Configuration({ apiKey: openaiKey }))
+  ? new OpenAI({ apiKey: openaiKey })
   : null;
 
 mongoose.connect(process.env.MONGODB_URI, {
@@ -51,26 +51,41 @@ function formatOdds(match) {
   );
 }
 
+// Updated function for robust JSON and full response extraction
 async function interpretQuery(text) {
   if (!openai) {
     throw new Error('OpenAI API key not configured');
   }
   const systemPrompt =
-    'Extract the intended date (today, tomorrow or YYYY-MM-DD) and optional team names from the user question. ' +
-    'Respond with JSON in the form {"date": "today|tomorrow|YYYY-MM-DD", "teams": ["Team A", "Team B"]} and nothing else.';
-  const resp = await openai.createChatCompletion({
-    model: 'gpt-3.5-turbo',
+    'Provide necessary greeting based on user questions. Then Extract the intended date (today, tomorrow or YYYY-MM-DD) and optional team names from the user question. ' +
+    'Respond with JSON in the form {"date": "today|tomorrow|YYYY-MM-DD", "teams": ["Team A", "Team B"]}. Finally, Look at history of that two team and provide your statistics and recommendation on where the bet should be placed. ' +
+    'ALWAYS put the JSON on a separate line at the top, with no markdown or explanation text before or after it, then put other information below.';
+
+  const resp = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
     messages: [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: text },
     ],
   });
-  const content = resp.data.choices[0].message.content.trim();
-  try {
-    return JSON.parse(content);
-  } catch (e) {
-    throw new Error('Unable to parse OpenAI response');
+  let content = resp.choices[0]?.message?.content?.trim() || '';
+  // Try to extract the first JSON object found
+  let jsonBlock = null;
+  const jsonMatch = content.match(/{[\s\S]+?}/);
+  if (jsonMatch) {
+    jsonBlock = jsonMatch[0];
   }
+  let json = null;
+  if (jsonBlock) {
+    try {
+      json = JSON.parse(jsonBlock);
+    } catch (e) {
+      throw new Error('Unable to parse JSON from OpenAI response: ' + jsonBlock);
+    }
+  }
+  // The rest (after the JSON) is statistics & recommendation
+  let afterJson = content.replace(jsonBlock, '').trim();
+  return { json, afterJson, full: content };
 }
 
 bot.onText(/\/today/, async (msg) => {
@@ -184,16 +199,17 @@ bot.onText(/\/results(?:\s+(\d{4}-\d{2}-\d{2}))?/, async (msg, match) => {
   }
 });
 
+// Main natural language handler with GPT-4o-mini
 bot.on('message', async (msg) => {
   const text = msg.text;
   if (!text || text.startsWith('/')) return;
   if (!openai) return; // skip if OpenAI not configured
 
   try {
-    const query = await interpretQuery(text);
+    const { json, afterJson } = await interpretQuery(text);
     let endpoint = 'http://localhost:4000/matches-today';
-    if (query.date) {
-      const d = query.date.toLowerCase();
+    if (json && json.date) {
+      const d = json.date.toLowerCase();
       if (d === 'tomorrow') endpoint = 'http://localhost:4000/matches-tomorrow';
       else if (d !== 'today') {
         // For arbitrary dates fallback to week matches and filter
@@ -203,13 +219,13 @@ bot.on('message', async (msg) => {
     const res = await axios.get(endpoint);
     let matches = res.data || [];
 
-    if (query.date && !['today', 'tomorrow'].includes(query.date.toLowerCase())) {
-      matches = matches.filter((m) => m.fixture.date.startsWith(query.date));
+    if (json && json.date && !['today', 'tomorrow'].includes(json.date.toLowerCase())) {
+      matches = matches.filter((m) => m.fixture.date.startsWith(json.date));
     }
 
-    if (Array.isArray(query.teams) && query.teams.length) {
+    if (json && Array.isArray(json.teams) && json.teams.length) {
       matches = matches.filter((m) =>
-        query.teams.every((team) =>
+        json.teams.every((team) =>
           `${m.teams.home.name} ${m.teams.away.name}`
             .toLowerCase()
             .includes(team.toLowerCase())
@@ -229,7 +245,13 @@ bot.on('message', async (msg) => {
       })
       .join('\n\n');
 
-    bot.sendMessage(msg.chat.id, lines || 'No matches found.');
+    // Respond with statistics and recommendation from the model, and relevant matches
+    let reply = '';
+    if (afterJson) reply += `${afterJson}\n\n`;
+    if (lines) reply += `Matches:\n${lines}`;
+    if (!reply.trim()) reply = 'No matches or recommendations found.';
+    bot.sendMessage(msg.chat.id, reply);
+
   } catch (err) {
     console.error('Natural language error:', err);
     bot.sendMessage(msg.chat.id, 'Sorry, I could not understand your request.');
