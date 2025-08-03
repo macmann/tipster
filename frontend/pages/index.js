@@ -16,6 +16,7 @@ export default function Home() {
   const [leagueFilter, setLeagueFilter] = useState('');
   const [leagues, setLeagues] = useState([]);
   const [withOddsOnly, setWithOddsOnly] = useState(true);
+  const [expandedMatches, setExpandedMatches] = useState({});
 
   useEffect(() => {
     async function fetchMatches() {
@@ -56,6 +57,30 @@ export default function Home() {
     return values
       .map((v) => `${v.value || v.name}: ${v.odd}`)
       .join(', ') || 'N/A';
+  };
+
+  const renderAllOdds = (match) => {
+    const bookmakers = match.odds?.[0]?.bookmakers || [];
+    if (bookmakers.length === 0) return <p>No odds available.</p>;
+    return (
+      <div className="mt-2 space-y-4">
+        {bookmakers.map((bm) => (
+          <div key={bm.id || bm.name} className="border p-2 rounded">
+            <h4 className="font-semibold mb-1">{bm.name}</h4>
+            {(bm.bets || []).map((bet) => (
+              <div key={bet.id} className="mb-2">
+                <div className="font-medium">{bet.name}</div>
+                <ul className="list-disc ml-5">
+                  {(bet.values || []).map((v, idx) => (
+                    <li key={idx}>{`${v.handicap || v.value || v.name}: ${v.odd}`}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
   };
 
   const renderAsianHandicap = (match) => {
@@ -161,7 +186,16 @@ export default function Home() {
                 : true
             )
             .map((m) => (
-              <div key={m.fixture?.id} className="border p-2 rounded shadow">
+              <div
+                key={m.fixture?.id}
+                className="border p-2 rounded shadow cursor-pointer"
+                onClick={() =>
+                  setExpandedMatches((prev) => ({
+                    ...prev,
+                    [m.fixture?.id]: !prev[m.fixture?.id]
+                  }))
+                }
+              >
                 <h3 className="font-semibold">
                   {m.teams?.home?.name || '-'} vs {m.teams?.away?.name || '-'}
                 </h3>
@@ -170,9 +204,7 @@ export default function Home() {
                   {m.fixture?.date ? new Date(m.fixture.date).toLocaleString() : '-'}
                 </p>
                 <p className="text-sm mb-1">Odds: {renderOdds(m)}</p>
-                <a href={`/match/${m.fixture?.id}`} className="text-blue-600 underline text-sm">
-                  View Details
-                </a>
+                {expandedMatches[m.fixture?.id] && renderAllOdds(m)}
               </div>
             ))}
         </div>

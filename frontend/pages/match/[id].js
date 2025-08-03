@@ -33,18 +33,23 @@ export default function MatchDetail() {
   }, [id]);
 
   const renderBets = () => {
-    const bets = match?.odds?.[0]?.bookmakers?.[0]?.bets || [];
-    if (bets.length === 0) return <p>No odds available.</p>;
+    const bookmakers = match?.odds?.[0]?.bookmakers || [];
+    if (bookmakers.length === 0) return <p>No odds available.</p>;
     return (
       <div className="space-y-4">
-        {bets.map((bet) => (
-          <div key={bet.id} className="border p-2 rounded">
-            <h3 className="font-semibold mb-1">{bet.name}</h3>
-            <ul className="list-disc ml-5">
-              {(bet.values || []).map((v, idx) => (
-                <li key={idx}>{`${v.handicap || v.value || v.name}: ${v.odd}`}</li>
-              ))}
-            </ul>
+        {bookmakers.map((bm) => (
+          <div key={bm.id || bm.name} className="border p-2 rounded">
+            <h3 className="font-semibold mb-2">{bm.name}</h3>
+            {(bm.bets || []).map((bet) => (
+              <div key={bet.id} className="mb-2">
+                <div className="font-medium">{bet.name}</div>
+                <ul className="list-disc ml-5">
+                  {(bet.values || []).map((v, idx) => (
+                    <li key={idx}>{`${v.handicap || v.value || v.name}: ${v.odd}`}</li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
         ))}
       </div>
