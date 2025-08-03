@@ -17,6 +17,10 @@ export default function Home() {
   const [leagues, setLeagues] = useState([]);
   const [withOddsOnly, setWithOddsOnly] = useState(true);
   const [expandedMatches, setExpandedMatches] = useState({});
+  const [aiContext, setAiContext] = useState(null);
+
+  const AI_PROMPT =
+    'You are a AI assistant to analyze the football match based on past meeting, scores, current status of team, and the odds and give recommandation and analysis for the user';
 
   useEffect(() => {
     async function fetchMatches() {
@@ -113,6 +117,19 @@ export default function Home() {
     return `${bet.type} (${bet.handicap})`;
   };
 
+  const buildAiContext = (match) => {
+    const baseInfo = [
+      `Match: ${match.teams?.home?.name || '-'} vs ${match.teams?.away?.name || '-'}`,
+      `League: ${match.league?.name || '-'}`,
+      `Kickoff: ${
+        match.fixture?.date ? new Date(match.fixture.date).toLocaleString() : '-'
+      }`,
+      `Odds: ${renderOdds(match)}`
+    ].join('\n');
+    const fullOdds = JSON.stringify(match.odds || {}, null, 2);
+    return `${AI_PROMPT}\n\n${baseInfo}\n\nAll Odds Data:\n${fullOdds}`;
+  };
+
   return (
     <div className="p-4">
       <nav className="mb-4">
@@ -188,7 +205,7 @@ export default function Home() {
             .map((m) => (
               <div
                 key={m.fixture?.id}
-                className="border p-2 rounded shadow cursor-pointer"
+                className="border p-2 rounded shadow cursor-pointer relative"
                 onClick={() =>
                   setExpandedMatches((prev) => ({
                     ...prev,
@@ -196,6 +213,16 @@ export default function Home() {
                   }))
                 }
               >
+                <button
+                  className="absolute top-2 right-2 p-1 bg-white border rounded"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setAiContext(buildAiContext(m));
+                  }}
+                  title="AI Recommendation"
+                >
+                  <img src="/ai.svg" alt="AI" className="w-4 h-4" />
+                </button>
                 <h3 className="font-semibold">
                   {m.teams?.home?.name || '-'} vs {m.teams?.away?.name || '-'}
                 </h3>
@@ -207,6 +234,30 @@ export default function Home() {
                 {expandedMatches[m.fixture?.id] && renderAllOdds(m)}
               </div>
             ))}
+        </div>
+      )}
+      {aiContext && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+          onClick={() => setAiContext(null)}
+        >
+          <div
+            className="bg-white p-4 rounded max-w-lg w-full"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h2 className="font-semibold mb-2">AI Context</h2>
+            <textarea
+              readOnly
+              className="w-full h-64 border p-2"
+              value={aiContext}
+            />
+            <button
+              className="mt-2 px-2 py-1 border rounded"
+              onClick={() => setAiContext(null)}
+            >
+              Close
+            </button>
+          </div>
         </div>
       )}
     </div>
