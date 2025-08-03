@@ -25,38 +25,43 @@ function calculateValueScore(oddNum, rules) {
 }
 
 async function recommendForUser(userId, date = new Date()) {
-  const userRule = await UserRule.findOne({ userId });
-  if (!userRule) return [];
-  const rules = userRule.rules || {};
+  try {
+    const userRule = await UserRule.findOne({ userId });
+    if (!userRule) return [];
+    const rules = userRule.rules || {};
 
-  const data = await getMatches(formatDate(date));
-  const matches = await enrichMatchesWithOdds(data.response);
+    const data = await getMatches(formatDate(date));
+    const matches = await enrichMatchesWithOdds(data.response || []);
 
-  const recommendations = [];
-  for (const match of matches) {
-    const oddStr = match.odds?.[0]?.bookmakers?.[0]?.bets?.[0]?.values?.[0]?.odd;
-    const oddNum = parseFloat(oddStr);
-    if (rules.minOdds && (!oddNum || oddNum < parseFloat(rules.minOdds))) {
-      continue;
+    const recommendations = [];
+    for (const match of matches) {
+      const oddStr = match.odds?.[0]?.bookmakers?.[0]?.bets?.[0]?.values?.[0]?.odd;
+      const oddNum = parseFloat(oddStr);
+      if (rules.minOdds && (!oddNum || oddNum < parseFloat(rules.minOdds))) {
+        continue;
+      }
+      const valueScore = calculateValueScore(oddNum, rules);
+      const rationale = [];
+      if (rules.minOdds) {
+        rationale.push(`Odds ${oddNum} >= minOdds ${rules.minOdds}`);
+      } else {
+        rationale.push('No minOdds rule');
+      }
+      recommendations.push({
+        ...match,
+        valueScore,
+        rationale: rationale.join('; '),
+        recommendedBet: 'Home Win',
+        odd: oddNum || null
+      });
     }
-    const valueScore = calculateValueScore(oddNum, rules);
-    const rationale = [];
-    if (rules.minOdds) {
-      rationale.push(`Odds ${oddNum} >= minOdds ${rules.minOdds}`);
-    } else {
-      rationale.push('No minOdds rule');
-    }
-    recommendations.push({
-      ...match,
-      valueScore,
-      rationale: rationale.join('; '),
-      recommendedBet: 'Home Win',
-      odd: oddNum || null
-    });
+
+    recommendations.sort((a, b) => b.valueScore - a.valueScore);
+    return recommendations;
+  } catch (err) {
+    console.error('recommendForUser failed:', err);
+    return [];
   }
-
-  recommendations.sort((a, b) => b.valueScore - a.valueScore);
-  return recommendations;
 }
 
 module.exports = {
