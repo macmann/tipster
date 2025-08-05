@@ -51,6 +51,10 @@ function formatOdds(match) {
   );
 }
 
+function formatPrediction(match) {
+  return match.aiPrediction || 'N/A';
+}
+
 // Lightweight intent extraction with OpenAI for date/teams
 async function extractIntent(text) {
   if (!openai) throw new Error('OpenAI API key not configured');
@@ -77,17 +81,14 @@ async function extractIntent(text) {
   return JSON.parse(content);
 }
 
-// Main natural language handler with API data injection
+// Main natural language handler that returns stored predictions
 bot.on('message', async (msg) => {
   const text = msg.text;
   if (!text || text.startsWith('/')) return;
   if (!openai) return;
 
   try {
-    // 1. Extract intent (date, teams)
     const intent = await extractIntent(text);
-
-    // 2. Fetch matches
     let endpoint = 'http://localhost:4000/matches-today';
     if (intent && intent.date) {
       const d = intent.date.toLowerCase();
@@ -109,60 +110,25 @@ bot.on('message', async (msg) => {
       );
     }
 
-    // 3. Fetch historical results for the pair (if both teams provided)
-    let historyText = '';
-    if (intent && Array.isArray(intent.teams) && intent.teams.length === 2) {
-      const teamA = intent.teams[0];
-      const teamB = intent.teams[1];
-      try {
-        const resultsRes = await axios.get('http://localhost:4000/results', {
-          params: { teamA, teamB },
-        });
-        const history = resultsRes.data?.history || [];
-        if (history.length > 0) {
-          historyText =
-            `Previous results for ${teamA} vs ${teamB}:\n` +
-            history.map(h => `${h.date}: ${h.teams.home} ${h.goals.home} - ${h.goals.away} ${h.teams.away}`).join('\n');
-        }
-      } catch (err) {
-        // Ignore if API fails, just leave historyText empty
-      }
-    }
+    const lines = matches
+      .slice(0, 5)
+      .map((m) => {
+        const kickoff = m.fixture?.date
+          ? new Date(m.fixture.date).toLocaleString()
+          : '-';
+        return `${m.teams.home.name} vs ${m.teams.away.name} (${kickoff})\nOdds: ${formatOdds(m)}\nPrediction: ${formatPrediction(m)}`;
+      })
+      .join('\n\n');
 
-    // 4. Prepare match text for OpenAI
-    const matchText =
-      matches.length > 0
-        ? 'Upcoming matches:\n' +
-          matches.map(m =>
-            `${m.teams.home.name} vs ${m.teams.away.name} (${new Date(m.fixture.date).toLocaleString()}) Odds: ${formatOdds(m)}`
-          ).join('\n')
-        : 'No upcoming matches found for your query.';
-
-    // 5. Inject all info into OpenAI user message
-    const contextForOpenAI =
-      `${matchText}\n\n${historyText ? historyText + '\n\n' : ''}User question: ${text}`;
-
-    const systemPrompt =
-      'You are a football betting expert. Use the provided match data and previous results to provide informed recommendations. ' +
-      'If you do not see any relevant matches, say so. Otherwise, analyze the provided data, include a greeting, show the extracted date/teams as JSON, and give your statistics and recommendation.';
-
-    const resp = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: contextForOpenAI },
-      ],
-    });
-
-    const answer = resp.choices[0]?.message?.content?.trim() || '';
-    bot.sendMessage(msg.chat.id, answer);
-
+    bot.sendMessage(
+      msg.chat.id,
+      lines || 'No upcoming matches found for your query.'
+    );
   } catch (err) {
     console.error('Natural language error:', err);
     bot.sendMessage(msg.chat.id, 'Sorry, I could not process your request.');
   }
 });
-
 // /today, /tomorrow, /recommend, /rules, /results commands as before
 
 bot.onText(/\/today/, async (msg) => {
@@ -177,7 +143,7 @@ bot.onText(/\/today/, async (msg) => {
           : '-';
         return `${m.teams.home.name} vs ${m.teams.away.name} (${kickoff})\nOdds: ${formatOdds(
           m
-        )}`;
+        )}\nPrediction: ${formatPrediction(m)}`;
       })
       .join('\n\n');
     bot.sendMessage(chatId, lines || 'No matches found.');
@@ -199,7 +165,7 @@ bot.onText(/\/tomorrow/, async (msg) => {
           : '-';
         return `${m.teams.home.name} vs ${m.teams.away.name} (${kickoff})\nOdds: ${formatOdds(
           m
-        )}`;
+        )}\nPrediction: ${formatPrediction(m)}`;
       })
       .join('\n\n');
     bot.sendMessage(chatId, lines || 'No matches found.');

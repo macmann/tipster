@@ -10,6 +10,10 @@ const {
 } = require('./services/apiFootballService');
 const { recommendForUser } = require('./services/recommendationService');
 const { getMyanmarBet } = require('./utils/myanmarOdds');
+const {
+  getOrCreatePrediction,
+  getPrediction
+} = require('./services/predictionService');
 const UserRule = require('./models/UserRule');
 const OpenAI = require('openai');
 
@@ -46,9 +50,14 @@ async function enrichMatchesWithOdds(matches) {
       try {
         const odds = await getOdds(m.fixture.id);
         const myanmarBet = getMyanmarBet(odds.response);
-        return { ...m, odds: odds.response, myanmarBet };
+        const aiPrediction = await getOrCreatePrediction({
+          ...m,
+          odds: odds.response,
+        });
+        return { ...m, odds: odds.response, myanmarBet, aiPrediction };
       } catch (err) {
-        return { ...m, odds: [], myanmarBet: null };
+        const aiPrediction = await getPrediction(m.fixture.id);
+        return { ...m, odds: [], myanmarBet: null, aiPrediction };
       }
     })
   );
@@ -109,6 +118,10 @@ app.get('/match/:id', async (req, res, next) => {
     if (!fixture) return res.status(404).json({ error: 'Match not found' });
     const oddsData = await getOdds(matchId);
     fixture.odds = oddsData.response;
+    fixture.aiPrediction = await getOrCreatePrediction({
+      ...fixture,
+      odds: oddsData.response,
+    });
     res.json(fixture);
   } catch (err) {
     console.error(err);

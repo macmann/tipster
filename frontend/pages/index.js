@@ -267,7 +267,16 @@ export default function Home() {
                   {m.fixture?.date ? new Date(m.fixture.date).toLocaleString() : '-'}
                 </p>
                 <p className="text-sm mb-1">Odds: {renderOdds(m)}</p>
-                {expandedMatches[m.fixture?.id] && renderAllOdds(m)}
+                {expandedMatches[m.fixture?.id] && (
+                  <div>
+                    {m.aiPrediction && (
+                      <p className="italic mb-2">
+                        AI Prediction: {m.aiPrediction}
+                      </p>
+                    )}
+                    {renderAllOdds(m)}
+                  </div>
+                )}
               </div>
             ))}
         </div>
