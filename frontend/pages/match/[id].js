@@ -71,6 +71,11 @@ export default function MatchDetail() {
             {match.teams?.home?.name} vs {match.teams?.away?.name}
           </h1>
           <p className="mb-4">{new Date(match.fixture?.date).toLocaleString()}</p>
+          {match.aiPrediction && (
+            <p className="mb-4 italic">
+              AI Prediction: {match.aiPrediction}
+            </p>
+          )}
           {renderBets()}
         </div>
       )}
