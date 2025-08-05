@@ -11,6 +11,9 @@ const {
 const { recommendForUser } = require('./services/recommendationService');
 const { getMyanmarBet } = require('./utils/myanmarOdds');
 const UserRule = require('./models/UserRule');
+const OpenAI = require('openai');
+
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const app = express();
 
@@ -158,17 +161,36 @@ app.get('/user/:id/rules', async (req, res, next) => {
   }
 });
 
-app.get('/results', async (req, res, next) => {
-  const date = req.query.date || formatDate(new Date());
-  try {
-    const data = await getResults(date);
-    res.json(data);
-  } catch (err) {
-    console.error(err);
-    err.message = 'Failed to fetch results. Please try again later.';
-    next(err);
-  }
-});
+  app.get('/results', async (req, res, next) => {
+    const date = req.query.date || formatDate(new Date());
+    try {
+      const data = await getResults(date);
+      res.json(data);
+    } catch (err) {
+      console.error(err);
+      err.message = 'Failed to fetch results. Please try again later.';
+      next(err);
+    }
+  });
+
+  app.post('/ai-predict', async (req, res, next) => {
+    const context = req.body?.context;
+    if (!context) {
+      return res.status(400).json({ error: 'context is required' });
+    }
+    try {
+      const completion = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: [{ role: 'user', content: context }]
+      });
+      const result = completion.choices?.[0]?.message?.content?.trim() || '';
+      res.json({ result });
+    } catch (err) {
+      console.error(err);
+      err.message = 'Failed to fetch AI prediction. Please try again later.';
+      next(err);
+    }
+  });
 
 // 404 handler for unknown routes
 app.use((req, res) => {
