@@ -17,7 +17,10 @@ export default function Home() {
   const [leagues, setLeagues] = useState([]);
   const [withOddsOnly, setWithOddsOnly] = useState(true);
   const [expandedMatches, setExpandedMatches] = useState({});
-  const [aiContext, setAiContext] = useState(null);
+  const [aiModal, setAiModal] = useState(false);
+  const [aiResult, setAiResult] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
 
   const AI_PROMPT =
     'You are a AI assistant to analyze the football match based on past meeting, scores, current status of team, and the odds and give recommandation and analysis for the user';
@@ -130,6 +133,39 @@ export default function Home() {
     return `${AI_PROMPT}\n\n${baseInfo}\n\nAll Odds Data:\n${fullOdds}`;
   };
 
+  const handleAiClick = async (match) => {
+    const context = buildAiContext(match);
+    setAiModal(true);
+    setAiLoading(true);
+    setAiError(null);
+    setAiResult('');
+    try {
+      const res = await fetch('http://localhost:4000/ai-predict', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ context })
+      });
+      let data;
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to fetch AI prediction');
+      } else {
+        data = await res.json();
+      }
+      setAiResult(data.result || '');
+    } catch (err) {
+      setAiError(err.message || 'Failed to fetch AI prediction');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
+  const closeAi = () => {
+    setAiModal(false);
+    setAiResult('');
+    setAiError(null);
+  };
+
   return (
     <div className="p-4">
       <nav className="mb-4">
@@ -217,7 +253,7 @@ export default function Home() {
                   className="absolute top-2 right-2 p-1 bg-white border rounded"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setAiContext(buildAiContext(m));
+                    handleAiClick(m);
                   }}
                   title="AI Recommendation"
                 >
@@ -236,24 +272,28 @@ export default function Home() {
             ))}
         </div>
       )}
-      {aiContext && (
+      {aiModal && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
-          onClick={() => setAiContext(null)}
+          onClick={closeAi}
         >
           <div
             className="bg-white p-4 rounded max-w-lg w-full"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-semibold mb-2">AI Context</h2>
-            <textarea
-              readOnly
-              className="w-full h-64 border p-2"
-              value={aiContext}
-            />
+            <h2 className="font-semibold mb-2">AI Recommendation</h2>
+            {aiLoading && <p>Loading...</p>}
+            {aiError && <p className="text-red-600">Error: {aiError}</p>}
+            {!aiLoading && !aiError && (
+              <textarea
+                readOnly
+                className="w-full h-64 border p-2"
+                value={aiResult}
+              />
+            )}
             <button
               className="mt-2 px-2 py-1 border rounded"
-              onClick={() => setAiContext(null)}
+              onClick={closeAi}
             >
               Close
             </button>
