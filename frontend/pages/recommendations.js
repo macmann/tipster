@@ -80,7 +80,9 @@ export default function Recommendations() {
       <nav className="mb-4">
         <a href="/" className="mr-2">Matches</a>
         |
-        <a href="/recommendations" className="ml-2">Recommendations</a>
+        <a href="/recommendations" className="mx-2">Recommendations</a>
+        |
+        <a href="/rule-builder" className="ml-2">Rule Builder</a>
       </nav>
       <h1 className="text-center text-2xl font-semibold mb-4">Recommendations</h1>
       {loading && <p>Loading...</p>}

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import RuleBuilder from '../components/RuleBuilder';
 import { getMyanmarBet } from '../utils/myanmarOdds';
 
 const TABS = {
@@ -171,10 +170,11 @@ export default function Home() {
       <nav className="mb-4">
         <a href="/" className="mr-2">Matches</a>
         |
-        <a href="/recommendations" className="ml-2">Recommendations</a>
+        <a href="/recommendations" className="mx-2">Recommendations</a>
+        |
+        <a href="/rule-builder" className="ml-2">Rule Builder</a>
       </nav>
       <h1 className="text-center text-2xl font-semibold mb-4">Match List</h1>
-      <RuleBuilder userId="1" />
       <div className="flex items-center gap-2 mb-4">
         <label htmlFor="league-filter">League:</label>
         <input
