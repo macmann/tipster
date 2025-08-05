@@ -40,4 +40,17 @@ async function getPrediction(fixtureId) {
   return doc ? doc.prediction : '';
 }
 
-module.exports = { getOrCreatePrediction, getPrediction };
+async function refreshPrediction(match) {
+  const fixtureId = match?.fixture?.id;
+  if (!fixtureId) return '';
+  const prediction = await generatePrediction(match);
+  if (!prediction) return '';
+  await MatchPrediction.findOneAndUpdate(
+    { fixtureId },
+    { prediction, createdAt: new Date() },
+    { upsert: true }
+  );
+  return prediction;
+}
+
+module.exports = { getOrCreatePrediction, getPrediction, refreshPrediction };

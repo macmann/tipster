@@ -165,6 +165,30 @@ export default function Home() {
     setAiError(null);
   };
 
+  const handleRefreshPrediction = async (e, fixtureId) => {
+    e.stopPropagation();
+    try {
+      const res = await fetch(
+        `http://localhost:4000/match/${fixtureId}/refresh-prediction`,
+        { method: 'POST' }
+      );
+      let data;
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to refresh prediction');
+      } else {
+        data = await res.json();
+      }
+      setMatches((prev) =>
+        prev.map((m) =>
+          m.fixture?.id === fixtureId ? { ...m, aiPrediction: data.prediction } : m
+        )
+      );
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   return (
     <div className="p-4">
       <nav className="mb-4">
@@ -269,11 +293,15 @@ export default function Home() {
                 <p className="text-sm mb-1">Odds: {renderOdds(m)}</p>
                 {expandedMatches[m.fixture?.id] && (
                   <div>
-                    {m.aiPrediction && (
-                      <p className="italic mb-2">
-                        AI Prediction: {m.aiPrediction}
-                      </p>
-                    )}
+                    <p className="italic mb-2">
+                      AI Prediction: {m.aiPrediction || 'N/A'}
+                      <button
+                        className="ml-2 text-blue-600 underline"
+                        onClick={(e) => handleRefreshPrediction(e, m.fixture.id)}
+                      >
+                        Refresh
+                      </button>
+                    </p>
                     {renderAllOdds(m)}
                   </div>
                 )}

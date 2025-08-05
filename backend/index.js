@@ -12,7 +12,8 @@ const { recommendForUser } = require('./services/recommendationService');
 const { getMyanmarBet } = require('./utils/myanmarOdds');
 const {
   getOrCreatePrediction,
-  getPrediction
+  getPrediction,
+  refreshPrediction
 } = require('./services/predictionService');
 const UserRule = require('./models/UserRule');
 const OpenAI = require('openai');
@@ -126,6 +127,25 @@ app.get('/match/:id', async (req, res, next) => {
   } catch (err) {
     console.error(err);
     err.message = 'Failed to fetch match details. Please try again later.';
+    next(err);
+  }
+});
+
+app.post('/match/:id/refresh-prediction', async (req, res, next) => {
+  const matchId = req.params.id;
+  try {
+    const fixtureData = await getFixture(matchId);
+    const fixture = fixtureData.response?.[0];
+    if (!fixture) return res.status(404).json({ error: 'Match not found' });
+    const oddsData = await getOdds(matchId);
+    const prediction = await refreshPrediction({
+      ...fixture,
+      odds: oddsData.response,
+    });
+    res.json({ prediction });
+  } catch (err) {
+    console.error(err);
+    err.message = 'Failed to refresh prediction. Please try again later.';
     next(err);
   }
 });
