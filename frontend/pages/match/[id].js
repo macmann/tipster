@@ -32,6 +32,25 @@ export default function MatchDetail() {
     fetchMatch();
   }, [id]);
 
+  const refreshPrediction = async () => {
+    try {
+      const res = await fetch(
+        `http://localhost:4000/match/${id}/refresh-prediction`,
+        { method: 'POST' }
+      );
+      let data;
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to refresh prediction');
+      } else {
+        data = await res.json();
+      }
+      setMatch((prev) => ({ ...prev, aiPrediction: data.prediction }));
+    } catch (err) {
+      setError(err.message || 'Failed to refresh prediction');
+    }
+  };
+
   const renderBets = () => {
     const bookmakers = match?.odds?.[0]?.bookmakers || [];
     if (bookmakers.length === 0) return <p>No odds available.</p>;
@@ -71,11 +90,15 @@ export default function MatchDetail() {
             {match.teams?.home?.name} vs {match.teams?.away?.name}
           </h1>
           <p className="mb-4">{new Date(match.fixture?.date).toLocaleString()}</p>
-          {match.aiPrediction && (
-            <p className="mb-4 italic">
-              AI Prediction: {match.aiPrediction}
-            </p>
-          )}
+          <p className="mb-4 italic">
+            AI Prediction: {match.aiPrediction || 'N/A'}
+            <button
+              className="ml-2 text-blue-600 underline"
+              onClick={refreshPrediction}
+            >
+              Refresh
+            </button>
+          </p>
           {renderBets()}
         </div>
       )}
