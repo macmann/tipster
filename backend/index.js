@@ -18,7 +18,10 @@ const {
 const UserRule = require('./models/UserRule');
 const OpenAI = require('openai');
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// Instantiate OpenAI only if an API key is provided so the server can start
+// even when AI features are not configured.
+const openaiKey = process.env.OPENAI_API_KEY;
+const openai = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 
 const app = express();
 
@@ -210,6 +213,9 @@ app.get('/user/:id/rules', async (req, res, next) => {
     const context = req.body?.context;
     if (!context) {
       return res.status(400).json({ error: 'context is required' });
+    }
+    if (!openai) {
+      return res.status(503).json({ error: 'AI service unavailable' });
     }
     try {
       const completion = await openai.chat.completions.create({
