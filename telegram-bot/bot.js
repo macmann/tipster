@@ -52,7 +52,11 @@ function formatOdds(match) {
 }
 
 function formatPrediction(match) {
-  return match.aiPrediction || 'N/A';
+  const ai = match.aiPrediction || 'N/A';
+  const human = match.humanPrediction
+    ? `\nHuman: ${match.humanPrediction}`
+    : '';
+  return `AI: ${ai}${human}`;
 }
 
 // Lightweight intent extraction with OpenAI for date/teams

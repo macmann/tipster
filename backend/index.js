@@ -13,7 +13,8 @@ const { getMyanmarBet } = require('./utils/myanmarOdds');
 const {
   getOrCreatePrediction,
   getPrediction,
-  refreshPrediction
+  refreshPrediction,
+  setHumanPrediction
 } = require('./services/predictionService');
 const UserRule = require('./models/UserRule');
 const OpenAI = require('openai');
@@ -54,14 +55,28 @@ async function enrichMatchesWithOdds(matches) {
       try {
         const odds = await getOdds(m.fixture.id);
         const myanmarBet = getMyanmarBet(odds.response);
-        const aiPrediction = await getOrCreatePrediction({
+        const { aiPrediction, humanPrediction } = await getOrCreatePrediction({
           ...m,
           odds: odds.response,
         });
-        return { ...m, odds: odds.response, myanmarBet, aiPrediction };
+        return {
+          ...m,
+          odds: odds.response,
+          myanmarBet,
+          aiPrediction,
+          humanPrediction,
+        };
       } catch (err) {
-        const aiPrediction = await getPrediction(m.fixture.id);
-        return { ...m, odds: [], myanmarBet: null, aiPrediction };
+        const { aiPrediction, humanPrediction } = await getPrediction(
+          m.fixture.id
+        );
+        return {
+          ...m,
+          odds: [],
+          myanmarBet: null,
+          aiPrediction,
+          humanPrediction,
+        };
       }
     })
   );
@@ -122,10 +137,12 @@ app.get('/match/:id', async (req, res, next) => {
     if (!fixture) return res.status(404).json({ error: 'Match not found' });
     const oddsData = await getOdds(matchId);
     fixture.odds = oddsData.response;
-    fixture.aiPrediction = await getOrCreatePrediction({
+    const { aiPrediction, humanPrediction } = await getOrCreatePrediction({
       ...fixture,
       odds: oddsData.response,
     });
+    fixture.aiPrediction = aiPrediction;
+    fixture.humanPrediction = humanPrediction;
     res.json(fixture);
   } catch (err) {
     console.error(err);
@@ -149,6 +166,22 @@ app.post('/match/:id/refresh-prediction', async (req, res, next) => {
   } catch (err) {
     console.error(err);
     err.message = 'Failed to refresh prediction. Please try again later.';
+    next(err);
+  }
+});
+
+app.post('/match/:id/human-prediction', async (req, res, next) => {
+  const matchId = req.params.id;
+  const prediction = req.body?.prediction;
+  if (!prediction) {
+    return res.status(400).json({ error: 'prediction is required' });
+  }
+  try {
+    const humanPrediction = await setHumanPrediction(matchId, prediction);
+    res.json({ humanPrediction });
+  } catch (err) {
+    console.error(err);
+    err.message = 'Failed to save human prediction. Please try again later.';
     next(err);
   }
 });

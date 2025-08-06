@@ -197,6 +197,8 @@ export default function Home() {
         <a href="/recommendations" className="mx-2">Recommendations</a>
         |
         <a href="/rule-builder" className="ml-2">Rule Builder</a>
+        |
+        <a href="/admin" className="ml-2">Admin</a>
       </nav>
       <h1 className="text-center text-2xl font-semibold mb-4">Match List</h1>
       <div className="flex items-center gap-2 mb-4">
@@ -301,6 +303,9 @@ export default function Home() {
                       >
                         Refresh
                       </button>
+                    </p>
+                    <p className="italic mb-2">
+                      Human Prediction: {m.humanPrediction || 'N/A'}
                     </p>
                     {renderAllOdds(m)}
                   </div>

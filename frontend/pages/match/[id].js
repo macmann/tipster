@@ -99,6 +99,9 @@ export default function MatchDetail() {
               Refresh
             </button>
           </p>
+          <p className="mb-4 italic">
+            Human Prediction: {match.humanPrediction || 'N/A'}
+          </p>
           {renderBets()}
         </div>
       )}
