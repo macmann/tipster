@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getMyanmarBet } from '../utils/myanmarOdds';
+import Markdown from '../components/Markdown';
 
 const TABS = {
   today: 'Today',
@@ -295,15 +296,18 @@ export default function Home() {
                 <p className="text-sm mb-1">Odds: {renderOdds(m)}</p>
                 {expandedMatches[m.fixture?.id] && (
                   <div>
-                    <p className="italic mb-2">
-                      AI Prediction: {m.aiPrediction || 'N/A'}
-                      <button
-                        className="ml-2 text-blue-600 underline"
-                        onClick={(e) => handleRefreshPrediction(e, m.fixture.id)}
-                      >
-                        Refresh
-                      </button>
-                    </p>
+                    <div className="italic mb-2">
+                      <div>
+                        AI Prediction:
+                        <button
+                          className="ml-2 text-blue-600 underline"
+                          onClick={(e) => handleRefreshPrediction(e, m.fixture.id)}
+                        >
+                          Refresh
+                        </button>
+                      </div>
+                      <Markdown text={m.aiPrediction || 'N/A'} />
+                    </div>
                     <p className="italic mb-2">
                       Human Prediction: {m.humanPrediction || 'N/A'}
                     </p>
