@@ -1,5 +1,6 @@
 import { useRouter } from 'next/router';
 import { useEffect, useState } from 'react';
+import Markdown from '../../components/Markdown';
 
 export default function MatchDetail() {
   const router = useRouter();
@@ -90,15 +91,18 @@ export default function MatchDetail() {
             {match.teams?.home?.name} vs {match.teams?.away?.name}
           </h1>
           <p className="mb-4">{new Date(match.fixture?.date).toLocaleString()}</p>
-          <p className="mb-4 italic">
-            AI Prediction: {match.aiPrediction || 'N/A'}
-            <button
-              className="ml-2 text-blue-600 underline"
-              onClick={refreshPrediction}
-            >
-              Refresh
-            </button>
-          </p>
+          <div className="mb-4 italic">
+            <div>
+              AI Prediction:
+              <button
+                className="ml-2 text-blue-600 underline"
+                onClick={refreshPrediction}
+              >
+                Refresh
+              </button>
+            </div>
+            <Markdown text={match.aiPrediction || 'N/A'} />
+          </div>
           <p className="mb-4 italic">
             Human Prediction: {match.humanPrediction || 'N/A'}
           </p>

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Markdown from '../components/Markdown';
 
 const TABS = {
   today: 'Today',
@@ -120,7 +121,10 @@ export default function Admin() {
               <p className="text-sm mb-1">Odds: {renderOdds(m)}</p>
               {expandedMatches[m.fixture?.id] && (
                 <div>
-                  <p className="italic mb-2">AI Prediction: {m.aiPrediction || 'N/A'}</p>
+                  <div className="italic mb-2">
+                    <div>AI Prediction:</div>
+                    <Markdown text={m.aiPrediction || 'N/A'} />
+                  </div>
                   <p className="italic mb-2">Human Prediction: {m.humanPrediction || 'N/A'}</p>
                   <textarea
                     className="w-full border p-1 mb-2"
