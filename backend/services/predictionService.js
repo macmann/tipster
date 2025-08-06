@@ -16,12 +16,23 @@ async function generatePrediction(match) {
   const home = match.teams?.home?.name || 'Home';
   const away = match.teams?.away?.name || 'Away';
   const odds = summarizeOdds(match) || 'odds unavailable';
-  const prompt = `Predict the likely outcome of the football match ${home} vs ${away} given odds: ${odds}. Provide a concise betting tip.`;
-  const resp = await openai.chat.completions.create({
-    model: 'gpt-3.5-turbo',
-    messages: [{ role: 'user', content: prompt }],
-  });
-  return resp.choices?.[0]?.message?.content?.trim() || '';
+
+  const prompt =
+    `Use web search to gather any up-to-date information about the football match ` +
+    `${home} vs ${away}. Given the betting odds: ${odds}, ` +
+    `provide a concise prediction for the match outcome.`;
+
+  try {
+    const resp = await openai.responses.create({
+      model: 'gpt-4.1-mini',
+      messages: [{ role: 'user', content: prompt }],
+      tools: [{ type: 'web_search' }],
+    });
+    return resp.output?.[0]?.content?.[0]?.text?.trim() || '';
+  } catch (err) {
+    console.error('Prediction generation failed:', err);
+    return '';
+  }
 }
 
 async function getOrCreatePrediction(match) {
