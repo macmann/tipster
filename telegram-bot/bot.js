@@ -54,7 +54,7 @@ function formatOdds(match) {
 function formatPrediction(match) {
   const ai = match.aiPrediction || 'N/A';
   const human = match.humanPrediction
-    ? `\nHuman: ${match.humanPrediction}`
+    ? `, Human: ${match.humanPrediction}`
     : '';
   return `AI: ${ai}${human}`;
 }
@@ -120,9 +120,9 @@ bot.on('message', async (msg) => {
         const kickoff = m.fixture?.date
           ? new Date(m.fixture.date).toLocaleString()
           : '-';
-        return `${m.teams.home.name} vs ${m.teams.away.name} (${kickoff})\nOdds: ${formatOdds(m)}\nPrediction: ${formatPrediction(m)}`;
+        return `${m.teams.home.name} vs ${m.teams.away.name} (${kickoff}) - Odds: ${formatOdds(m)} - Prediction: ${formatPrediction(m)}`;
       })
-      .join('\n\n');
+      .join('\n');
 
     bot.sendMessage(
       msg.chat.id,
@@ -145,11 +145,11 @@ bot.onText(/\/today/, async (msg) => {
         const kickoff = m.fixture?.date
           ? new Date(m.fixture.date).toLocaleString()
           : '-';
-        return `${m.teams.home.name} vs ${m.teams.away.name} (${kickoff})\nOdds: ${formatOdds(
+        return `${m.teams.home.name} vs ${m.teams.away.name} (${kickoff}) - Odds: ${formatOdds(
           m
-        )}\nPrediction: ${formatPrediction(m)}`;
+        )} - Prediction: ${formatPrediction(m)}`;
       })
-      .join('\n\n');
+      .join('\n');
     bot.sendMessage(chatId, lines || 'No matches found.');
   } catch (err) {
     console.error('Error fetching matches:', err);
@@ -167,11 +167,11 @@ bot.onText(/\/tomorrow/, async (msg) => {
         const kickoff = m.fixture?.date
           ? new Date(m.fixture.date).toLocaleString()
           : '-';
-        return `${m.teams.home.name} vs ${m.teams.away.name} (${kickoff})\nOdds: ${formatOdds(
+        return `${m.teams.home.name} vs ${m.teams.away.name} (${kickoff}) - Odds: ${formatOdds(
           m
-        )}\nPrediction: ${formatPrediction(m)}`;
+        )} - Prediction: ${formatPrediction(m)}`;
       })
-      .join('\n\n');
+      .join('\n');
     bot.sendMessage(chatId, lines || 'No matches found.');
   } catch (err) {
     console.error('Error fetching matches:', err);
@@ -190,10 +190,10 @@ bot.onText(/\/recommend/, async (msg) => {
       .slice(0, 5)
       .map((r) => {
         const odd = r.odd ? r.odd : 'N/A';
-        const rationale = r.rationale ? `Reason: ${r.rationale}` : '';
-        return `${r.teams.home.name} vs ${r.teams.away.name}\nBet: ${r.recommendedBet} @ ${odd}\n${rationale}`;
+        const rationale = r.rationale ? ` - Reason: ${r.rationale}` : '';
+        return `${r.teams.home.name} vs ${r.teams.away.name} - Bet: ${r.recommendedBet} @ ${odd}${rationale}`;
       })
-      .join('\n\n');
+      .join('\n');
     bot.sendMessage(chatId, lines || 'No recommendations found.');
   } catch (err) {
     console.error('Error fetching recommendations:', err);

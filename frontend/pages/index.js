@@ -5,8 +5,11 @@ import Markdown from '../components/Markdown';
 const TABS = {
   today: 'Today',
   tomorrow: 'Tomorrow',
-  week: 'This Week'
+  week: 'This Week',
+  settings: 'Settings'
 };
+
+const TOP_LEAGUE_IDS = [39, 40, 140, 141, 135, 136, 78, 79, 61, 62, 88, 89];
 
 export default function Home() {
   const [tab, setTab] = useState('today');
@@ -16,6 +19,7 @@ export default function Home() {
   const [leagueFilter, setLeagueFilter] = useState('');
   const [leagues, setLeagues] = useState([]);
   const [withOddsOnly, setWithOddsOnly] = useState(true);
+  const [topLeaguesOnly, setTopLeaguesOnly] = useState(false);
   const [expandedMatches, setExpandedMatches] = useState({});
   const [aiModal, setAiModal] = useState(false);
   const [aiResult, setAiResult] = useState('');
@@ -26,6 +30,7 @@ export default function Home() {
     'You are a AI assistant to analyze the football match based on past meeting, scores, current status of team, and the odds and give recommandation and analysis for the user';
 
   useEffect(() => {
+    if (tab === 'settings') return;
     async function fetchMatches() {
       setLoading(true);
       setError(null);
@@ -43,9 +48,12 @@ export default function Home() {
           data = await res.json();
         }
         const arr = Array.isArray(data) ? data : [];
-        setMatches(arr);
+        const filtered = topLeaguesOnly
+          ? arr.filter((m) => TOP_LEAGUE_IDS.includes(m.league?.id))
+          : arr;
+        setMatches(filtered);
         const uniqueLeagues = Array.from(
-          new Set(arr.map((m) => m.league?.name).filter(Boolean))
+          new Set(filtered.map((m) => m.league?.name).filter(Boolean))
         );
         setLeagues(uniqueLeagues);
       } catch (err) {
@@ -56,7 +64,7 @@ export default function Home() {
     }
 
     fetchMatches();
-  }, [tab]);
+  }, [tab, topLeaguesOnly]);
 
   const renderOdds = (match) => {
     const values =
@@ -202,39 +210,41 @@ export default function Home() {
         <a href="/admin" className="ml-2">Admin</a>
       </nav>
       <h1 className="text-center text-2xl font-semibold mb-4">Match List</h1>
-      <div className="flex items-center gap-2 mb-4">
-        <label htmlFor="league-filter">League:</label>
-        <input
-          id="league-filter"
-          type="text"
-          list="league-options"
-          value={leagueFilter}
-          onChange={(e) => setLeagueFilter(e.target.value)}
-          placeholder="Type or select league"
-          className="border px-1 py-0.5"
-        />
-        <datalist id="league-options">
-          {leagues.map((l) => (
-            <option key={l} value={l} />
-          ))}
-        </datalist>
-        {leagueFilter && (
-          <button
-            className="text-blue-600 underline"
-            onClick={() => setLeagueFilter('')}
-          >
-            Clear
-          </button>
-        )}
-        <label className="flex items-center gap-1 ml-4">
+      {tab !== 'settings' && (
+        <div className="flex items-center gap-2 mb-4">
+          <label htmlFor="league-filter">League:</label>
           <input
-            type="checkbox"
-            checked={withOddsOnly}
-            onChange={(e) => setWithOddsOnly(e.target.checked)}
+            id="league-filter"
+            type="text"
+            list="league-options"
+            value={leagueFilter}
+            onChange={(e) => setLeagueFilter(e.target.value)}
+            placeholder="Type or select league"
+            className="border px-1 py-0.5"
           />
-          Only with odds
-        </label>
-      </div>
+          <datalist id="league-options">
+            {leagues.map((l) => (
+              <option key={l} value={l} />
+            ))}
+          </datalist>
+          {leagueFilter && (
+            <button
+              className="text-blue-600 underline"
+              onClick={() => setLeagueFilter('')}
+            >
+              Clear
+            </button>
+          )}
+          <label className="flex items-center gap-1 ml-4">
+            <input
+              type="checkbox"
+              checked={withOddsOnly}
+              onChange={(e) => setWithOddsOnly(e.target.checked)}
+            />
+            Only with odds
+          </label>
+        </div>
+      )}
       <div className="flex justify-center gap-2 mb-4">
         {Object.entries(TABS).map(([key, label]) => (
           <button
@@ -248,75 +258,98 @@ export default function Home() {
           </button>
         ))}
       </div>
-      {loading && <p>Loading...</p>}
-      {error && <p className="text-red-600">Error: {error}</p>}
-      {!loading && !error && (
-        <div className="grid gap-4 md:grid-cols-2">
-          {matches
-            .filter((m) =>
-              leagueFilter
-                ? (m.league?.name || '')
-                    .toLowerCase()
-                    .includes(leagueFilter.toLowerCase())
-                : true
-            )
-            .filter((m) =>
-              withOddsOnly
-                ? (m.odds?.[0]?.bookmakers?.[0]?.bets?.[0]?.values?.length ?? 0) > 0
-                : true
-            )
-            .map((m) => (
-              <div
-                key={m.fixture?.id}
-                className="border p-2 rounded shadow cursor-pointer relative"
-                onClick={() =>
-                  setExpandedMatches((prev) => ({
-                    ...prev,
-                    [m.fixture?.id]: !prev[m.fixture?.id]
-                  }))
-                }
-              >
-                <button
-                  className="absolute top-2 right-2 p-1 bg-white border rounded"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleAiClick(m);
-                  }}
-                  title="AI Recommendation"
-                >
-                  <img src="/ai.svg" alt="AI" className="w-4 h-4" />
-                </button>
-                <h3 className="font-semibold">
-                  {m.teams?.home?.name || '-'} vs {m.teams?.away?.name || '-'}
-                </h3>
-                <p className="text-sm">{m.league?.name || '-'}</p>
-                <p className="text-sm">
-                  {m.fixture?.date ? new Date(m.fixture.date).toLocaleString() : '-'}
-                </p>
-                <p className="text-sm mb-1">Odds: {renderOdds(m)}</p>
-                {expandedMatches[m.fixture?.id] && (
-                  <div>
-                    <div className="italic mb-2">
-                      <div>
-                        AI Prediction:
-                        <button
-                          className="ml-2 text-blue-600 underline"
-                          onClick={(e) => handleRefreshPrediction(e, m.fixture.id)}
-                        >
-                          Refresh
-                        </button>
-                      </div>
-                      <Markdown text={m.aiPrediction || 'N/A'} />
-                    </div>
-                    <p className="italic mb-2">
-                      Human Prediction: {m.humanPrediction || 'N/A'}
-                    </p>
-                    {renderAllOdds(m)}
-                  </div>
-                )}
-              </div>
-            ))}
+      {tab === 'settings' ? (
+        <div className="mb-4 space-y-2">
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              checked={!topLeaguesOnly}
+              onChange={() => setTopLeaguesOnly(false)}
+            />
+            All leagues
+          </label>
+          <label className="flex items-center gap-2">
+            <input
+              type="radio"
+              checked={topLeaguesOnly}
+              onChange={() => setTopLeaguesOnly(true)}
+            />
+            Top 6 leagues only
+          </label>
         </div>
+      ) : (
+        <>
+          {loading && <p>Loading...</p>}
+          {error && <p className="text-red-600">Error: {error}</p>}
+          {!loading && !error && (
+            <div className="grid gap-4 md:grid-cols-2">
+              {matches
+                .filter((m) =>
+                  leagueFilter
+                    ? (m.league?.name || '')
+                        .toLowerCase()
+                        .includes(leagueFilter.toLowerCase())
+                    : true
+                )
+                .filter((m) =>
+                  withOddsOnly
+                    ? (m.odds?.[0]?.bookmakers?.[0]?.bets?.[0]?.values?.length ?? 0) > 0
+                    : true
+                )
+                .map((m) => (
+                  <div
+                    key={m.fixture?.id}
+                    className="border p-2 rounded shadow cursor-pointer relative"
+                    onClick={() =>
+                      setExpandedMatches((prev) => ({
+                        ...prev,
+                        [m.fixture?.id]: !prev[m.fixture?.id]
+                      }))
+                    }
+                  >
+                    <button
+                      className="absolute top-2 right-2 p-1 bg-white border rounded"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAiClick(m);
+                      }}
+                      title="AI Recommendation"
+                    >
+                      <img src="/ai.svg" alt="AI" className="w-4 h-4" />
+                    </button>
+                    <h3 className="font-semibold">
+                      {m.teams?.home?.name || '-'} vs {m.teams?.away?.name || '-'}
+                    </h3>
+                    <p className="text-sm">{m.league?.name || '-'}</p>
+                    <p className="text-sm">
+                      {m.fixture?.date ? new Date(m.fixture.date).toLocaleString() : '-'}
+                    </p>
+                    <p className="text-sm mb-1">Odds: {renderOdds(m)}</p>
+                    {expandedMatches[m.fixture?.id] && (
+                      <div>
+                        <div className="italic mb-2">
+                          <div>
+                            AI Prediction:
+                            <button
+                              className="ml-2 text-blue-600 underline"
+                              onClick={(e) => handleRefreshPrediction(e, m.fixture.id)}
+                            >
+                              Refresh
+                            </button>
+                          </div>
+                          <Markdown text={m.aiPrediction || 'N/A'} />
+                        </div>
+                        <p className="italic mb-2">
+                          Human Prediction: {m.humanPrediction || 'N/A'}
+                        </p>
+                        {renderAllOdds(m)}
+                      </div>
+                    )}
+                  </div>
+                ))}
+            </div>
+          )}
+        </>
       )}
       {aiModal && (
         <div
