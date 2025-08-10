@@ -26,6 +26,9 @@ const openai = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 
 const app = express();
 
+const TOP_LEAGUE_IDS = [39, 40, 140, 141, 135, 136, 78, 79, 61, 62, 88, 89];
+const MATCH_REQUEST_DELAY_MS = Number(process.env.MATCH_REQUEST_DELAY_MS) || 1000;
+
 // Enable CORS for the frontend running on localhost:3000
 app.use(cors({ origin: 'http://localhost:3000' }));
 
@@ -49,44 +52,52 @@ function formatDate(date) {
   return date.toISOString().split('T')[0];
 }
 
+function filterTopLeagues(matches, topLeaguesOnly = true) {
+  if (!topLeaguesOnly) return matches;
+  return matches.filter((m) => TOP_LEAGUE_IDS.includes(m.league?.id));
+}
+
 async function enrichMatchesWithOdds(matches) {
-  return Promise.all(
-    matches.map(async (m) => {
-      try {
-        const odds = await getOdds(m.fixture.id);
-        const myanmarBet = getMyanmarBet(odds.response);
-        const { aiPrediction, humanPrediction } = await getOrCreatePrediction({
-          ...m,
-          odds: odds.response,
-        });
-        return {
-          ...m,
-          odds: odds.response,
-          myanmarBet,
-          aiPrediction,
-          humanPrediction,
-        };
-      } catch (err) {
-        const { aiPrediction, humanPrediction } = await getPrediction(
-          m.fixture.id
-        );
-        return {
-          ...m,
-          odds: [],
-          myanmarBet: null,
-          aiPrediction,
-          humanPrediction,
-        };
-      }
-    })
-  );
+  const enriched = [];
+  for (const m of matches) {
+    try {
+      const odds = await getOdds(m.fixture.id);
+      const myanmarBet = getMyanmarBet(odds.response);
+      const { aiPrediction, humanPrediction } = await getOrCreatePrediction({
+        ...m,
+        odds: odds.response,
+      });
+      enriched.push({
+        ...m,
+        odds: odds.response,
+        myanmarBet,
+        aiPrediction,
+        humanPrediction,
+      });
+    } catch (err) {
+      const { aiPrediction, humanPrediction } = await getPrediction(m.fixture.id);
+      enriched.push({
+        ...m,
+        odds: [],
+        myanmarBet: null,
+        aiPrediction,
+        humanPrediction,
+      });
+    }
+    if (MATCH_REQUEST_DELAY_MS > 0) {
+      await new Promise((r) => setTimeout(r, MATCH_REQUEST_DELAY_MS));
+    }
+  }
+  return enriched;
 }
 
 app.get('/matches-today', async (req, res, next) => {
   const today = formatDate(new Date());
+  const topLeaguesOnly = req.query.topLeagues !== 'false';
   try {
     const data = await getMatches(today);
-    const enriched = await enrichMatchesWithOdds(data.response);
+    const filtered = filterTopLeagues(data.response, topLeaguesOnly);
+    const enriched = await enrichMatchesWithOdds(filtered);
     res.json(enriched);
   } catch (err) {
     console.error(err);
@@ -99,9 +110,11 @@ app.get('/matches-tomorrow', async (req, res, next) => {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   const date = formatDate(d);
+  const topLeaguesOnly = req.query.topLeagues !== 'false';
   try {
     const data = await getMatches(date);
-    const enriched = await enrichMatchesWithOdds(data.response);
+    const filtered = filterTopLeagues(data.response, topLeaguesOnly);
+    const enriched = await enrichMatchesWithOdds(filtered);
     res.json(enriched);
   } catch (err) {
     console.error(err);
@@ -113,12 +126,14 @@ app.get('/matches-tomorrow', async (req, res, next) => {
 app.get('/matches-week', async (req, res, next) => {
   const today = new Date();
   const all = [];
+  const topLeaguesOnly = req.query.topLeagues !== 'false';
   try {
     for (let i = 0; i < 7; i++) {
       const d = new Date(today);
       d.setDate(d.getDate() + i);
       const data = await getMatches(formatDate(d));
-      const enriched = await enrichMatchesWithOdds(data.response);
+      const filtered = filterTopLeagues(data.response, topLeaguesOnly);
+      const enriched = await enrichMatchesWithOdds(filtered);
       all.push(...enriched);
     }
     res.json(all);
