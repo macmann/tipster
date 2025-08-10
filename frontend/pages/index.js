@@ -9,8 +9,6 @@ const TABS = {
   settings: 'Settings'
 };
 
-const TOP_LEAGUE_IDS = [39, 40, 140, 141, 135, 136, 78, 79, 61, 62, 88, 89];
-
 export default function Home() {
   const [tab, setTab] = useState('today');
   const [matches, setMatches] = useState([]);
@@ -19,7 +17,7 @@ export default function Home() {
   const [leagueFilter, setLeagueFilter] = useState('');
   const [leagues, setLeagues] = useState([]);
   const [withOddsOnly, setWithOddsOnly] = useState(true);
-  const [topLeaguesOnly, setTopLeaguesOnly] = useState(false);
+  const [topLeaguesOnly, setTopLeaguesOnly] = useState(true);
   const [expandedMatches, setExpandedMatches] = useState({});
   const [aiModal, setAiModal] = useState(false);
   const [aiResult, setAiResult] = useState('');
@@ -39,7 +37,9 @@ export default function Home() {
           tab === 'week'
             ? 'matches-week'
             : `matches-${tab}`;
-        const res = await fetch(`http://localhost:4000/${endpoint}`);
+        const res = await fetch(
+          `http://localhost:4000/${endpoint}?topLeagues=${topLeaguesOnly}`
+        );
         let data;
         if (!res.ok) {
           const errData = await res.json().catch(() => ({}));
@@ -48,12 +48,9 @@ export default function Home() {
           data = await res.json();
         }
         const arr = Array.isArray(data) ? data : [];
-        const filtered = topLeaguesOnly
-          ? arr.filter((m) => TOP_LEAGUE_IDS.includes(m.league?.id))
-          : arr;
-        setMatches(filtered);
+        setMatches(arr);
         const uniqueLeagues = Array.from(
-          new Set(filtered.map((m) => m.league?.name).filter(Boolean))
+          new Set(arr.map((m) => m.league?.name).filter(Boolean))
         );
         setLeagues(uniqueLeagues);
       } catch (err) {
