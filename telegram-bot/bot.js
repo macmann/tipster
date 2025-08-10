@@ -89,6 +89,39 @@ async function extractIntent(text) {
 bot.on('message', async (msg) => {
   const text = msg.text;
   if (!text || text.startsWith('/')) return;
+
+  const chatId = msg.chat.id;
+  const lower = text.toLowerCase().trim();
+  const greetings = ['hi', 'hay', 'hey', 'hello'];
+
+  if (greetings.includes(lower)) {
+    try {
+      const res = await axios.get('http://localhost:4000/matches-today');
+      const lines = (res.data || [])
+        .slice(0, 5)
+        .map((m) => {
+          const kickoff = m.fixture?.date
+            ? new Date(m.fixture.date).toLocaleString()
+            : '-';
+          return `${m.teams.home.name} vs ${m.teams.away.name} (${kickoff}) - Odds: ${formatOdds(m)} - Prediction: ${formatPrediction(m)}`;
+        })
+        .join('\n');
+
+      const response =
+        lines
+          ? `${lines}\n\nIf you want more or prediction about specific match, pls ask`
+          : 'No matches found. If you want more or prediction about specific match, pls ask';
+      bot.sendMessage(chatId, response);
+    } catch (err) {
+      console.error('Error fetching matches:', err);
+      bot.sendMessage(
+        chatId,
+        'Failed to fetch matches. If you want more or prediction about specific match, pls ask'
+      );
+    }
+    return;
+  }
+
   if (!openai) return;
 
   try {
@@ -101,7 +134,11 @@ bot.on('message', async (msg) => {
     }
     let matchesRes = await axios.get(endpoint);
     let matches = matchesRes.data || [];
-    if (intent && intent.date && !['today', 'tomorrow'].includes(intent.date.toLowerCase())) {
+    if (
+      intent &&
+      intent.date &&
+      !['today', 'tomorrow'].includes(intent.date.toLowerCase())
+    ) {
       matches = matches.filter((m) => m.fixture.date.startsWith(intent.date));
     }
     if (intent && Array.isArray(intent.teams) && intent.teams.length) {
@@ -124,13 +161,14 @@ bot.on('message', async (msg) => {
       })
       .join('\n');
 
-    bot.sendMessage(
-      msg.chat.id,
-      lines || 'No upcoming matches found for your query.'
-    );
+    const response =
+      lines
+        ? `${lines}\n\nIf you want more or prediction about specific match, pls ask`
+        : 'No upcoming matches found for your query. If you want more or prediction about specific match, pls ask';
+    bot.sendMessage(chatId, response);
   } catch (err) {
     console.error('Natural language error:', err);
-    bot.sendMessage(msg.chat.id, 'Sorry, I could not process your request.');
+    bot.sendMessage(chatId, 'Sorry, I could not process your request.');
   }
 });
 // /today, /tomorrow, /recommend, /rules, /results commands as before
@@ -150,7 +188,11 @@ bot.onText(/\/today/, async (msg) => {
         )} - Prediction: ${formatPrediction(m)}`;
       })
       .join('\n');
-    bot.sendMessage(chatId, lines || 'No matches found.');
+    const response =
+      lines
+        ? `${lines}\n\nIf you want more or prediction about specific match, pls ask`
+        : 'No matches found. If you want more or prediction about specific match, pls ask';
+    bot.sendMessage(chatId, response);
   } catch (err) {
     console.error('Error fetching matches:', err);
     bot.sendMessage(chatId, 'Failed to fetch matches.');
@@ -172,7 +214,11 @@ bot.onText(/\/tomorrow/, async (msg) => {
         )} - Prediction: ${formatPrediction(m)}`;
       })
       .join('\n');
-    bot.sendMessage(chatId, lines || 'No matches found.');
+    const response =
+      lines
+        ? `${lines}\n\nIf you want more or prediction about specific match, pls ask`
+        : 'No matches found. If you want more or prediction about specific match, pls ask';
+    bot.sendMessage(chatId, response);
   } catch (err) {
     console.error('Error fetching matches:', err);
     bot.sendMessage(chatId, 'Failed to fetch matches.');
