@@ -23,11 +23,13 @@ async function generatePrediction(match) {
     `provide a concise prediction for the match outcome. Not only use the odd, but also use their previous results, player injury, and the current form to give detailed statistics. Also provide the predicted final score. Use your web search to get team news which might influence the result and consider that in your prediction.`;
 
   try {
-    const resp = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [{ role: 'user', content: prompt }],
+    const resp = await openai.responses.create({
+      model: 'gpt-4.1-mini',
+      input: prompt,
+      tools: [{ type: 'web_search' }],
+      max_output_tokens: 500,
     });
-    return resp.choices?.[0]?.message?.content?.trim() || '';
+    return resp.output_text?.trim() || '';
   } catch (err) {
     console.error('Prediction generation failed:', err);
     return '';
