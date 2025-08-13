@@ -1,8 +1,8 @@
 # Tipster
 
-Tipster is a small demo project that fetches football match data from the [API-Football](https://www.api-football.com/) service and provides simple betting recommendations.  The repository contains three Node.js based services:
+Tipster is a small demo project that fetches football match data from the [API-Football](https://www.api-football.com/) service or optionally from [The Odds API](https://the-odds-api.com/) based on configuration and provides simple betting recommendations.  The repository contains three Node.js based services:
 
-- **backend/** – Express API that queries API‑Football, stores user rules in MongoDB and exposes endpoints for matches, results and recommendations.
+- **backend/** – Express API that queries API‑Football or The Odds API, stores user rules in MongoDB and exposes endpoints for matches, results and recommendations.
 - **frontend/** – Next.js web client to browse matches and manage rules.
 - **telegram-bot/** – Telegram bot that delivers recommendations and match info via chat.
 
@@ -10,7 +10,7 @@ Tipster is a small demo project that fetches football match data from the [API-F
 
 - Node.js (version 18 or later is recommended)
 - A running MongoDB instance
-- API keys for API‑Football and Telegram (see the `.env.example` files)
+- API keys for API‑Football, The Odds API and Telegram (see the `.env.example` files)
 
 ## Getting Started
 
