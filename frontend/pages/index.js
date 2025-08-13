@@ -17,7 +17,8 @@ export default function Home() {
   const [leagueFilter, setLeagueFilter] = useState('');
   const [leagues, setLeagues] = useState([]);
   const [withOddsOnly, setWithOddsOnly] = useState(true);
-  const [topLeaguesOnly, setTopLeaguesOnly] = useState(true);
+  const [topSixOnly, setTopSixOnly] = useState(false);
+  const [euroCupsOnly, setEuroCupsOnly] = useState(false);
   const [expandedMatches, setExpandedMatches] = useState({});
   const [aiModal, setAiModal] = useState(false);
   const [aiResult, setAiResult] = useState('');
@@ -38,7 +39,7 @@ export default function Home() {
             ? 'matches-week'
             : `matches-${tab}`;
         const res = await fetch(
-          `http://localhost:4000/${endpoint}?topLeagues=${topLeaguesOnly}`
+          `http://localhost:4000/${endpoint}?top6=${topSixOnly}&euro=${euroCupsOnly}`
         );
         let data;
         if (!res.ok) {
@@ -61,7 +62,7 @@ export default function Home() {
     }
 
     fetchMatches();
-  }, [tab, topLeaguesOnly]);
+  }, [tab, topSixOnly, euroCupsOnly]);
 
   const renderOdds = (match) => {
     const values =
@@ -271,19 +272,19 @@ export default function Home() {
         <div className="mb-4 space-y-2">
           <label className="flex items-center gap-2">
             <input
-              type="radio"
-              checked={!topLeaguesOnly}
-              onChange={() => setTopLeaguesOnly(false)}
+              type="checkbox"
+              checked={topSixOnly}
+              onChange={(e) => setTopSixOnly(e.target.checked)}
             />
-            All leagues
+            Top 6 leagues
           </label>
           <label className="flex items-center gap-2">
             <input
-              type="radio"
-              checked={topLeaguesOnly}
-              onChange={() => setTopLeaguesOnly(true)}
+              type="checkbox"
+              checked={euroCupsOnly}
+              onChange={(e) => setEuroCupsOnly(e.target.checked)}
             />
-            Top 6 leagues only
+            European competitions
           </label>
         </div>
       ) : (
