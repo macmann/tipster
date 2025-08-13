@@ -10,6 +10,7 @@ const {
 } = require('./services/apiFootballService');
 const { recommendForUser } = require('./services/recommendationService');
 const { getMyanmarBet } = require('./utils/myanmarOdds');
+const Match = require('./models/Match');
 const {
   getPrediction,
   refreshPrediction,
@@ -78,21 +79,19 @@ async function enrichMatchesWithOdds(matches) {
     try {
       const odds = await getOdds(m.fixture.id);
       const myanmarBet = getMyanmarBet(odds.response);
-      const { aiPrediction, humanPrediction } = await getPrediction(m.fixture.id);
+      const { humanPrediction } = await getPrediction(m.fixture.id);
       enriched.push({
         ...m,
         odds: odds.response,
         myanmarBet,
-        aiPrediction,
         humanPrediction,
       });
     } catch (err) {
-      const { aiPrediction, humanPrediction } = await getPrediction(m.fixture.id);
+      const { humanPrediction } = await getPrediction(m.fixture.id);
       enriched.push({
         ...m,
         odds: [],
         myanmarBet: null,
-        aiPrediction,
         humanPrediction,
       });
     }
@@ -103,15 +102,29 @@ async function enrichMatchesWithOdds(matches) {
   return enriched;
 }
 
+async function getCachedMatches(date, refresh = false) {
+  let doc = await Match.findOne({ date });
+  if (!doc || refresh) {
+    const data = await getMatches(date);
+    const enriched = await enrichMatchesWithOdds(data.response);
+    doc = await Match.findOneAndUpdate(
+      { date },
+      { matches: enriched, updatedAt: new Date() },
+      { upsert: true, new: true }
+    );
+  }
+  return doc.matches;
+}
+
 app.get('/matches-today', async (req, res, next) => {
   const today = formatDate(new Date());
   const topSix = req.query.top6 === 'true';
   const euroCups = req.query.euro === 'true';
+  const refresh = req.query.refresh === 'true';
   try {
-    const data = await getMatches(today);
-    const filtered = filterLeagues(data.response, topSix, euroCups);
-    const enriched = await enrichMatchesWithOdds(filtered);
-    res.json(enriched);
+    const matches = await getCachedMatches(today, refresh);
+    const filtered = filterLeagues(matches, topSix, euroCups);
+    res.json(filtered);
   } catch (err) {
     console.error(err);
     err.message = "Unable to fetch today's matches. Please try again later.";
@@ -125,11 +138,11 @@ app.get('/matches-tomorrow', async (req, res, next) => {
   const date = formatDate(d);
   const topSix = req.query.top6 === 'true';
   const euroCups = req.query.euro === 'true';
+  const refresh = req.query.refresh === 'true';
   try {
-    const data = await getMatches(date);
-    const filtered = filterLeagues(data.response, topSix, euroCups);
-    const enriched = await enrichMatchesWithOdds(filtered);
-    res.json(enriched);
+    const matches = await getCachedMatches(date, refresh);
+    const filtered = filterLeagues(matches, topSix, euroCups);
+    res.json(filtered);
   } catch (err) {
     console.error(err);
     err.message = "Unable to fetch tomorrow's matches. Please try again later.";
@@ -142,14 +155,15 @@ app.get('/matches-week', async (req, res, next) => {
   const all = [];
   const topSix = req.query.top6 === 'true';
   const euroCups = req.query.euro === 'true';
+  const refresh = req.query.refresh === 'true';
   try {
     for (let i = 0; i < 7; i++) {
       const d = new Date(today);
       d.setDate(d.getDate() + i);
-      const data = await getMatches(formatDate(d));
-      const filtered = filterLeagues(data.response, topSix, euroCups);
-      const enriched = await enrichMatchesWithOdds(filtered);
-      all.push(...enriched);
+      const date = formatDate(d);
+      const matches = await getCachedMatches(date, refresh);
+      const filtered = filterLeagues(matches, topSix, euroCups);
+      all.push(...filtered);
     }
     res.json(all);
   } catch (err) {

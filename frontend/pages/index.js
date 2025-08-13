@@ -28,39 +28,35 @@ export default function Home() {
   const AI_PROMPT =
     'You are a AI assistant to analyze the football match based on past meeting, scores, current status of team, and the odds and give recommandation and analysis for the user';
 
+  const fetchMatches = async (forceRefresh = false) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const endpoint = tab === 'week' ? 'matches-week' : `matches-${tab}`;
+      const url = `http://localhost:4000/${endpoint}?top6=${topSixOnly}&euro=${euroCupsOnly}${forceRefresh ? '&refresh=true' : ''}`;
+      const res = await fetch(url);
+      let data;
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || 'Failed to fetch matches');
+      } else {
+        data = await res.json();
+      }
+      const arr = Array.isArray(data) ? data : [];
+      setMatches(arr);
+      const uniqueLeagues = Array.from(
+        new Set(arr.map((m) => m.league?.name).filter(Boolean))
+      );
+      setLeagues(uniqueLeagues);
+    } catch (err) {
+      setError(err.message || 'Something went wrong');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (tab === 'settings') return;
-    async function fetchMatches() {
-      setLoading(true);
-      setError(null);
-      try {
-        const endpoint =
-          tab === 'week'
-            ? 'matches-week'
-            : `matches-${tab}`;
-        const res = await fetch(
-          `http://localhost:4000/${endpoint}?top6=${topSixOnly}&euro=${euroCupsOnly}`
-        );
-        let data;
-        if (!res.ok) {
-          const errData = await res.json().catch(() => ({}));
-          throw new Error(errData.error || 'Failed to fetch matches');
-        } else {
-          data = await res.json();
-        }
-        const arr = Array.isArray(data) ? data : [];
-        setMatches(arr);
-        const uniqueLeagues = Array.from(
-          new Set(arr.map((m) => m.league?.name).filter(Boolean))
-        );
-        setLeagues(uniqueLeagues);
-      } catch (err) {
-        setError(err.message || 'Something went wrong');
-      } finally {
-        setLoading(false);
-      }
-    }
-
     fetchMatches();
   }, [tab, topSixOnly, euroCupsOnly]);
 
@@ -219,7 +215,17 @@ export default function Home() {
         |
         <a href="/admin" className="ml-2">Admin</a>
       </nav>
-      <h1 className="text-center text-2xl font-semibold mb-4">Match List</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-semibold">Match List</h1>
+        {tab !== 'settings' && (
+          <button
+            className="px-2 py-1 border rounded"
+            onClick={() => fetchMatches(true)}
+          >
+            Refresh Matches
+          </button>
+        )}
+      </div>
       {tab !== 'settings' && (
         <div className="flex items-center gap-2 mb-4">
           <label htmlFor="league-filter">League:</label>
@@ -325,22 +331,29 @@ export default function Home() {
                       {m.fixture?.date ? new Date(m.fixture.date).toLocaleString() : '-'}
                     </p>
                     <p className="text-sm mb-1">Odds: {renderOdds(m)}</p>
+                    {m.aiPrediction ? (
+                      <div className="italic mb-1" onClick={(e) => e.stopPropagation()}>
+                        <div>
+                          AI Prediction:
+                          <button
+                            className="ml-2 text-blue-600 underline"
+                            onClick={(e) => handleGetPrediction(e, m.fixture.id)}
+                          >
+                            Refresh AI Prediction
+                          </button>
+                        </div>
+                        <Markdown text={m.aiPrediction} />
+                      </div>
+                    ) : (
+                      <button
+                        className="text-blue-600 underline mb-1"
+                        onClick={(e) => handleGetPrediction(e, m.fixture.id)}
+                      >
+                        Get AI Prediction
+                      </button>
+                    )}
                     {expandedMatches[m.fixture?.id] && (
                       <div>
-                        <div className="italic mb-2">
-                          <div>
-                            AI Prediction:
-                            <button
-                              className="ml-2 text-blue-600 underline"
-                              onClick={(e) => handleGetPrediction(e, m.fixture.id)}
-                            >
-                              {m.aiPrediction
-                                ? 'Refresh AI Prediction'
-                                : 'Get AI Prediction'}
-                            </button>
-                          </div>
-                          <Markdown text={m.aiPrediction || 'N/A'} />
-                        </div>
                         <p className="italic mb-2">
                           Human Prediction: {m.humanPrediction || 'N/A'}
                         </p>
