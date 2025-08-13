@@ -26,6 +26,12 @@ const openai = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 const app = express();
 
 const TOP_LEAGUE_IDS = [39, 40, 140, 141, 135, 136, 78, 79, 61, 62, 88, 89];
+const EURO_CUP_KEYWORDS = [
+  'UEFA Champions League',
+  'UEFA Europa League',
+  'UEFA Europa Conference League',
+  'UEFA Super Cup'
+];
 const MATCH_REQUEST_DELAY_MS = Number(process.env.MATCH_REQUEST_DELAY_MS) || 1000;
 
 // Enable CORS for the frontend running on localhost:3000
@@ -51,9 +57,16 @@ function formatDate(date) {
   return date.toISOString().split('T')[0];
 }
 
+function isTopLeague(league) {
+  return (
+    TOP_LEAGUE_IDS.includes(league?.id) ||
+    EURO_CUP_KEYWORDS.some((keyword) => league?.name?.includes(keyword))
+  );
+}
+
 function filterTopLeagues(matches, topLeaguesOnly = true) {
   if (!topLeaguesOnly) return matches;
-  return matches.filter((m) => TOP_LEAGUE_IDS.includes(m.league?.id));
+  return matches.filter((m) => isTopLeague(m.league));
 }
 
 async function enrichMatchesWithOdds(matches) {
