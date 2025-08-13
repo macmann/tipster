@@ -37,8 +37,8 @@ const MATCH_REQUEST_DELAY_MS = Number(process.env.MATCH_REQUEST_DELAY_MS) || 100
 // Enable CORS for the frontend running on localhost:3000
 app.use(cors({ origin: 'http://localhost:3000' }));
 
-// Parse JSON request bodies
-app.use(express.json());
+// Parse JSON request bodies with a higher size limit to handle large payloads
+app.use(express.json({ limit: '1mb' }));
 
 // Connect to MongoDB using Mongoose
 mongoose.connect(process.env.MONGODB_URI, {
