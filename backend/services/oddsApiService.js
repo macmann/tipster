@@ -51,16 +51,32 @@ function mapEvent(event) {
 }
 
 async function fetchEvents() {
-  const response = await axios.get(`${API_BASE_URL}/sports/${SPORT}/odds`, {
-    params: {
-      apiKey: API_KEY,
-      regions: REGION,
-      markets: MARKETS,
-      dateFormat: 'iso',
-      oddsFormat: 'decimal',
-    },
-  });
-  return response.data || [];
+  try {
+    const response = await axios.get(`${API_BASE_URL}/sports/${SPORT}/odds`, {
+      params: {
+        apiKey: API_KEY,
+        regions: REGION,
+        markets: MARKETS,
+        dateFormat: 'iso',
+        oddsFormat: 'decimal',
+      },
+    });
+    const events = response.data || [];
+    if (events.length === 0) {
+      console.warn('The Odds API returned no events for the current request.');
+    }
+    return events;
+  } catch (err) {
+    if (err.response) {
+      console.error(
+        `The Odds API error (${err.response.status}):`,
+        err.response.data
+      );
+    } else {
+      console.error('The Odds API request failed:', err.message);
+    }
+    throw err;
+  }
 }
 
 async function getMatches(date) {
@@ -69,6 +85,9 @@ async function getMatches(date) {
     const filtered = events.filter((e) =>
       e.commence_time.startsWith(date)
     );
+    if (filtered.length === 0) {
+      console.warn(`No matches found for date ${date} from The Odds API.`);
+    }
     return { response: filtered.map(mapEvent) };
   });
 }
