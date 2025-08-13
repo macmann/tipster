@@ -57,16 +57,19 @@ function formatDate(date) {
   return date.toISOString().split('T')[0];
 }
 
-function isTopLeague(league) {
-  return (
-    TOP_LEAGUE_IDS.includes(league?.id) ||
-    EURO_CUP_KEYWORDS.some((keyword) => league?.name?.includes(keyword))
-  );
+function isTopSixLeague(league) {
+  return TOP_LEAGUE_IDS.includes(league?.id);
 }
 
-function filterTopLeagues(matches, topLeaguesOnly = true) {
-  if (!topLeaguesOnly) return matches;
-  return matches.filter((m) => isTopLeague(m.league));
+function isEuroCup(league) {
+  return EURO_CUP_KEYWORDS.some((keyword) => league?.name?.includes(keyword));
+}
+
+function filterLeagues(matches, topSix = false, euroCups = false) {
+  if (!topSix && !euroCups) return matches;
+  return matches.filter(
+    (m) => (topSix && isTopSixLeague(m.league)) || (euroCups && isEuroCup(m.league))
+  );
 }
 
 async function enrichMatchesWithOdds(matches) {
@@ -102,10 +105,11 @@ async function enrichMatchesWithOdds(matches) {
 
 app.get('/matches-today', async (req, res, next) => {
   const today = formatDate(new Date());
-  const topLeaguesOnly = req.query.topLeagues !== 'false';
+  const topSix = req.query.top6 === 'true';
+  const euroCups = req.query.euro === 'true';
   try {
     const data = await getMatches(today);
-    const filtered = filterTopLeagues(data.response, topLeaguesOnly);
+    const filtered = filterLeagues(data.response, topSix, euroCups);
     const enriched = await enrichMatchesWithOdds(filtered);
     res.json(enriched);
   } catch (err) {
@@ -119,15 +123,16 @@ app.get('/matches-tomorrow', async (req, res, next) => {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   const date = formatDate(d);
-  const topLeaguesOnly = req.query.topLeagues !== 'false';
+  const topSix = req.query.top6 === 'true';
+  const euroCups = req.query.euro === 'true';
   try {
     const data = await getMatches(date);
-    const filtered = filterTopLeagues(data.response, topLeaguesOnly);
+    const filtered = filterLeagues(data.response, topSix, euroCups);
     const enriched = await enrichMatchesWithOdds(filtered);
     res.json(enriched);
   } catch (err) {
     console.error(err);
-    err.message = 'Unable to fetch tomorrow\'s matches. Please try again later.';
+    err.message = "Unable to fetch tomorrow's matches. Please try again later.";
     next(err);
   }
 });
@@ -135,20 +140,21 @@ app.get('/matches-tomorrow', async (req, res, next) => {
 app.get('/matches-week', async (req, res, next) => {
   const today = new Date();
   const all = [];
-  const topLeaguesOnly = req.query.topLeagues !== 'false';
+  const topSix = req.query.top6 === 'true';
+  const euroCups = req.query.euro === 'true';
   try {
     for (let i = 0; i < 7; i++) {
       const d = new Date(today);
       d.setDate(d.getDate() + i);
       const data = await getMatches(formatDate(d));
-      const filtered = filterTopLeagues(data.response, topLeaguesOnly);
+      const filtered = filterLeagues(data.response, topSix, euroCups);
       const enriched = await enrichMatchesWithOdds(filtered);
       all.push(...enriched);
     }
     res.json(all);
   } catch (err) {
     console.error(err);
-    err.message = 'Unable to fetch this week\'s matches. Please try again later.';
+    err.message = "Unable to fetch this week's matches. Please try again later.";
     next(err);
   }
 });
