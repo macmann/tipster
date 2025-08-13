@@ -34,11 +34,22 @@ async function getOdds(matchId) {
   });
 }
 
+// Results change throughout the day, so avoid caching empty responses. Once
+// results are available they are cached for the default TTL since final scores
+// will not change.
 async function getResults(date) {
-  return fetchWithCache(`results_${date}`, async () => {
-    const response = await http.get('/fixtures', { params: { date, status: 'FT' } });
-    return response.data;
-  });
+  const key = `results_${date}`;
+  const cached = cache.get(key);
+  if (cached) return cached;
+
+  const response = await http.get('/fixtures', { params: { date, status: 'FT' } });
+  const data = response.data;
+
+  if ((data.response || []).length > 0) {
+    cache.set(key, data);
+  }
+
+  return data;
 }
 
 async function getFixture(matchId) {
