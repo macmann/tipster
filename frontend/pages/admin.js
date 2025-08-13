@@ -100,48 +100,52 @@ export default function Admin() {
       {loading && <p>Loading...</p>}
       {error && <p className="text-red-600">Error: {error}</p>}
       {!loading && !error && (
-        <div className="grid gap-4 md:grid-cols-2">
-          {matches.map((m) => (
-            <div
-              key={m.fixture?.id}
-              className="border p-2 rounded shadow cursor-pointer"
-              onClick={() =>
-                setExpandedMatches((prev) => ({
-                  ...prev,
-                  [m.fixture?.id]: !prev[m.fixture?.id],
-                }))
-              }
-            >
-              <h3 className="font-semibold">
-                {m.teams?.home?.name || '-'} vs {m.teams?.away?.name || '-'}
-              </h3>
-              <p className="text-sm">
-                {m.fixture?.date ? new Date(m.fixture.date).toLocaleString() : '-'}
-              </p>
-              <p className="text-sm mb-1">Odds: {renderOdds(m)}</p>
-              {expandedMatches[m.fixture?.id] && (
-                <div>
-                  <div className="italic mb-2">
-                    <div>AI Prediction:</div>
-                    <Markdown text={m.aiPrediction || 'N/A'} />
+        matches.length === 0 ? (
+          <p>No matches available.</p>
+        ) : (
+          <div className="grid gap-4 md:grid-cols-2">
+            {matches.map((m) => (
+              <div
+                key={m.fixture?.id}
+                className="border p-2 rounded shadow cursor-pointer"
+                onClick={() =>
+                  setExpandedMatches((prev) => ({
+                    ...prev,
+                    [m.fixture?.id]: !prev[m.fixture?.id],
+                  }))
+                }
+              >
+                <h3 className="font-semibold">
+                  {m.teams?.home?.name || '-'} vs {m.teams?.away?.name || '-'}
+                </h3>
+                <p className="text-sm">
+                  {m.fixture?.date ? new Date(m.fixture.date).toLocaleString() : '-'}
+                </p>
+                <p className="text-sm mb-1">Odds: {renderOdds(m)}</p>
+                {expandedMatches[m.fixture?.id] && (
+                  <div>
+                    <div className="italic mb-2">
+                      <div>AI Prediction:</div>
+                      <Markdown text={m.aiPrediction || 'N/A'} />
+                    </div>
+                    <p className="italic mb-2">Human Prediction: {m.humanPrediction || 'N/A'}</p>
+                    <textarea
+                      className="w-full border p-1 mb-2"
+                      value={inputs[m.fixture?.id] ?? m.humanPrediction ?? ''}
+                      onChange={(e) => handleInputChange(m.fixture?.id, e.target.value)}
+                    />
+                    <button
+                      className="px-2 py-1 border rounded"
+                      onClick={(e) => handleSave(e, m.fixture.id)}
+                    >
+                      Save
+                    </button>
                   </div>
-                  <p className="italic mb-2">Human Prediction: {m.humanPrediction || 'N/A'}</p>
-                  <textarea
-                    className="w-full border p-1 mb-2"
-                    value={inputs[m.fixture?.id] ?? m.humanPrediction ?? ''}
-                    onChange={(e) => handleInputChange(m.fixture?.id, e.target.value)}
-                  />
-                  <button
-                    className="px-2 py-1 border rounded"
-                    onClick={(e) => handleSave(e, m.fixture.id)}
-                  >
-                    Save
-                  </button>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )
       )}
     </div>
   );
