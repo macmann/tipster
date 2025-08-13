@@ -195,6 +195,18 @@ export default function Home() {
     }
   };
 
+  const filteredMatches = matches
+    .filter((m) =>
+      leagueFilter
+        ? (m.league?.name || '').toLowerCase().includes(leagueFilter.toLowerCase())
+        : true
+    )
+    .filter((m) =>
+      withOddsOnly
+        ? (m.odds?.[0]?.bookmakers?.[0]?.bets?.[0]?.values?.length ?? 0) > 0
+        : true
+    );
+
   return (
     <div className="p-4">
       <nav className="mb-4">
@@ -279,21 +291,11 @@ export default function Home() {
           {loading && <p>Loading...</p>}
           {error && <p className="text-red-600">Error: {error}</p>}
           {!loading && !error && (
-            <div className="grid gap-4 md:grid-cols-2">
-              {matches
-                .filter((m) =>
-                  leagueFilter
-                    ? (m.league?.name || '')
-                        .toLowerCase()
-                        .includes(leagueFilter.toLowerCase())
-                    : true
-                )
-                .filter((m) =>
-                  withOddsOnly
-                    ? (m.odds?.[0]?.bookmakers?.[0]?.bets?.[0]?.values?.length ?? 0) > 0
-                    : true
-                )
-                .map((m) => (
+            filteredMatches.length === 0 ? (
+              <p>No matches available.</p>
+            ) : (
+              <div className="grid gap-4 md:grid-cols-2">
+                {filteredMatches.map((m) => (
                   <div
                     key={m.fixture?.id}
                     className="border p-2 rounded shadow cursor-pointer relative"
@@ -344,7 +346,8 @@ export default function Home() {
                     )}
                   </div>
                 ))}
-            </div>
+              </div>
+            )
           )}
         </>
       )}
