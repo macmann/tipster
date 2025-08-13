@@ -11,7 +11,6 @@ const {
 const { recommendForUser } = require('./services/recommendationService');
 const { getMyanmarBet } = require('./utils/myanmarOdds');
 const {
-  getOrCreatePrediction,
   getPrediction,
   refreshPrediction,
   setHumanPrediction
@@ -63,10 +62,7 @@ async function enrichMatchesWithOdds(matches) {
     try {
       const odds = await getOdds(m.fixture.id);
       const myanmarBet = getMyanmarBet(odds.response);
-      const { aiPrediction, humanPrediction } = await getOrCreatePrediction({
-        ...m,
-        odds: odds.response,
-      });
+      const { aiPrediction, humanPrediction } = await getPrediction(m.fixture.id);
       enriched.push({
         ...m,
         odds: odds.response,
@@ -152,10 +148,7 @@ app.get('/match/:id', async (req, res, next) => {
     if (!fixture) return res.status(404).json({ error: 'Match not found' });
     const oddsData = await getOdds(matchId);
     fixture.odds = oddsData.response;
-    const { aiPrediction, humanPrediction } = await getOrCreatePrediction({
-      ...fixture,
-      odds: oddsData.response,
-    });
+    const { aiPrediction, humanPrediction } = await getPrediction(matchId);
     fixture.aiPrediction = aiPrediction;
     fixture.humanPrediction = humanPrediction;
     res.json(fixture);

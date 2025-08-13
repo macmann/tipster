@@ -33,7 +33,7 @@ export default function MatchDetail() {
     fetchMatch();
   }, [id]);
 
-  const refreshPrediction = async () => {
+  const fetchPrediction = async () => {
     try {
       const res = await fetch(
         `http://localhost:4000/match/${id}/refresh-prediction`,
@@ -48,7 +48,7 @@ export default function MatchDetail() {
       }
       setMatch((prev) => ({ ...prev, aiPrediction: data.prediction }));
     } catch (err) {
-      setError(err.message || 'Failed to refresh prediction');
+      setError(err.message || 'Failed to fetch prediction');
     }
   };
 
@@ -96,9 +96,11 @@ export default function MatchDetail() {
               AI Prediction:
               <button
                 className="ml-2 text-blue-600 underline"
-                onClick={refreshPrediction}
+                onClick={fetchPrediction}
               >
-                Refresh
+                {match.aiPrediction
+                  ? 'Refresh AI Prediction'
+                  : 'Get AI Prediction'}
               </button>
             </div>
             <Markdown text={match.aiPrediction || 'N/A'} />

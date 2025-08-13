@@ -171,7 +171,7 @@ export default function Home() {
     setAiError(null);
   };
 
-  const handleRefreshPrediction = async (e, fixtureId) => {
+  const handleGetPrediction = async (e, fixtureId) => {
     e.stopPropagation();
     try {
       const res = await fetch(
@@ -181,7 +181,7 @@ export default function Home() {
       let data;
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
-        throw new Error(errData.error || 'Failed to refresh prediction');
+        throw new Error(errData.error || 'Failed to fetch prediction');
       } else {
         data = await res.json();
       }
@@ -331,9 +331,11 @@ export default function Home() {
                             AI Prediction:
                             <button
                               className="ml-2 text-blue-600 underline"
-                              onClick={(e) => handleRefreshPrediction(e, m.fixture.id)}
+                              onClick={(e) => handleGetPrediction(e, m.fixture.id)}
                             >
-                              Refresh
+                              {m.aiPrediction
+                                ? 'Refresh AI Prediction'
+                                : 'Get AI Prediction'}
                             </button>
                           </div>
                           <Markdown text={m.aiPrediction || 'N/A'} />
