@@ -2,12 +2,12 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const {
-  getMatches,
-  getOdds,
-  getResults,
-  getFixture
-} = require('./services/apiFootballService');
+const DATA_PROVIDER = process.env.DATA_PROVIDER || 'api-football';
+const apiService =
+  DATA_PROVIDER === 'odds-api'
+    ? require('./services/oddsApiService')
+    : require('./services/apiFootballService');
+const { getMatches, getOdds, getResults, getFixture } = apiService;
 const { recommendForUser } = require('./services/recommendationService');
 const { getMyanmarBet } = require('./utils/myanmarOdds');
 const Match = require('./models/Match');
