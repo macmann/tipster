@@ -137,20 +137,23 @@ bot.on('message', async (msg) => {
 
   try {
     const intent = await extractIntent(text);
-      let endpoint = `${API_BASE_URL}/matches-today`;
-      if (intent && intent.date) {
-        const d = intent.date.toLowerCase();
-        if (d === 'tomorrow') endpoint = `${API_BASE_URL}/matches-tomorrow`;
-        else if (d !== 'today') endpoint = `${API_BASE_URL}/matches-week`;
-      }
-      let matchesRes = await axios.get(endpoint);
+    let endpoint = `${API_BASE_URL}/matches-today`;
+    if (intent && intent.date) {
+      const d = intent.date.toLowerCase();
+      if (d === 'tomorrow') endpoint = `${API_BASE_URL}/matches-tomorrow`;
+      else if (d !== 'today') endpoint = `${API_BASE_URL}/matches-week`;
+    } else if (intent && Array.isArray(intent.teams) && intent.teams.length) {
+      // Search the upcoming week when looking for a team without a specific date
+      endpoint = `${API_BASE_URL}/matches-week`;
+    }
+    let matchesRes = await axios.get(endpoint);
     let matches = matchesRes.data || [];
-    if (
-      intent &&
-      intent.date &&
-      !['today', 'tomorrow'].includes(intent.date.toLowerCase())
-    ) {
-      matches = matches.filter((m) => m.fixture.date.startsWith(intent.date));
+    if (intent && intent.date) {
+      const d = intent.date.toLowerCase();
+      const isSpecific = /^\d{4}-\d{2}-\d{2}$/.test(intent.date);
+      if (!['today', 'tomorrow'].includes(d) && isSpecific) {
+        matches = matches.filter((m) => m.fixture.date.startsWith(intent.date));
+      }
     }
     if (intent && Array.isArray(intent.teams) && intent.teams.length) {
       matches = matches.filter((m) =>
