@@ -5,6 +5,8 @@ const axios = require('axios');
 const OpenAI = require('openai');
 
 const User = require('./models/User');
+const Match = require('./models/Match');
+const MatchPrediction = require('./models/MatchPrediction');
 
 // Allow BOT_TOKEN or TELEGRAM_BOT_TOKEN to be supplied. dotenv does not
 // expand variables, so BOT_TOKEN may accidentally be set to the literal
@@ -79,6 +81,51 @@ function describeMatch(match) {
   return `${match.teams.home.name} meet ${match.teams.away.name} on ${kickoff}. Odds suggest ${odds}. ${prediction}.`;
 }
 
+function formatDate(date) {
+  return date.toISOString().split('T')[0];
+}
+
+async function getMatchesForDate(date) {
+  const doc = await Match.findOne({ date });
+  if (!doc) return [];
+  const matches = doc.matches || [];
+  const ids = matches.map((m) => String(m.fixture.id));
+  const preds = await MatchPrediction.find({
+    fixtureId: { $in: ids },
+  }).lean();
+  const predMap = new Map(preds.map((p) => [p.fixtureId, p]));
+  return matches.map((m) => {
+    const p = predMap.get(String(m.fixture.id)) || {};
+    return {
+      ...m,
+      aiPrediction: p.prediction || '',
+      humanPrediction: p.human || m.humanPrediction || '',
+    };
+  });
+}
+
+async function getMatchesToday() {
+  return getMatchesForDate(formatDate(new Date()));
+}
+
+async function getMatchesTomorrow() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return getMatchesForDate(formatDate(d));
+}
+
+async function getMatchesWeek() {
+  const today = new Date();
+  const all = [];
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() + i);
+    const matches = await getMatchesForDate(formatDate(d));
+    all.push(...matches);
+  }
+  return all;
+}
+
 // Lightweight intent extraction with OpenAI for date/teams
 async function extractIntent(text) {
   if (!openai) throw new Error('OpenAI API key not configured');
@@ -144,8 +191,8 @@ bot.on('message', async (msg) => {
 
   if (greetings.includes(lower)) {
     try {
-      const res = await axios.get(`${API_BASE_URL}/matches-today`);
-      const lines = (res.data || []).slice(0, 5).map(describeMatch);
+      const matches = await getMatchesToday();
+      const lines = matches.slice(0, 5).map(describeMatch);
       bot.sendMessage(
         chatId,
         lines.length ? lines.join('\n') : 'I could not find matches right now.'
@@ -161,17 +208,19 @@ bot.on('message', async (msg) => {
 
   try {
     const intent = await extractIntent(text);
-    let endpoint = `${API_BASE_URL}/matches-today`;
+    let matches = await getMatchesToday();
     if (intent && intent.date) {
       const d = intent.date.toLowerCase();
-      if (d === 'tomorrow') endpoint = `${API_BASE_URL}/matches-tomorrow`;
-      else if (d !== 'today') endpoint = `${API_BASE_URL}/matches-week`;
+      if (d === 'tomorrow') matches = await getMatchesTomorrow();
+      else if (d !== 'today') {
+        const isSpecific = /^\d{4}-\d{2}-\d{2}$/.test(intent.date);
+        if (isSpecific) matches = await getMatchesForDate(intent.date);
+        else matches = await getMatchesWeek();
+      }
     } else if (intent && Array.isArray(intent.teams) && intent.teams.length) {
       // Search the upcoming week when looking for a team without a specific date
-      endpoint = `${API_BASE_URL}/matches-week`;
+      matches = await getMatchesWeek();
     }
-    let matchesRes = await axios.get(endpoint);
-    let matches = matchesRes.data || [];
     if (intent && intent.date) {
       const d = intent.date.toLowerCase();
       const isSpecific = /^\d{4}-\d{2}-\d{2}$/.test(intent.date);
@@ -206,8 +255,8 @@ bot.on('message', async (msg) => {
 bot.onText(/\/today/, async (msg) => {
   const chatId = msg.chat.id;
   try {
-    const res = await axios.get(`${API_BASE_URL}/matches-today`);
-    const lines = (res.data || []).slice(0, 5).map(describeMatch);
+    const matches = await getMatchesToday();
+    const lines = matches.slice(0, 5).map(describeMatch);
     bot.sendMessage(
       chatId,
       lines.length ? lines.join('\n') : 'No matches found.'
@@ -221,8 +270,8 @@ bot.onText(/\/today/, async (msg) => {
 bot.onText(/\/tomorrow/, async (msg) => {
   const chatId = msg.chat.id;
   try {
-    const res = await axios.get(`${API_BASE_URL}/matches-tomorrow`);
-    const lines = (res.data || []).slice(0, 5).map(describeMatch);
+    const matches = await getMatchesTomorrow();
+    const lines = matches.slice(0, 5).map(describeMatch);
     bot.sendMessage(
       chatId,
       lines.length ? lines.join('\n') : 'No matches found.'
