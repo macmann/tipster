@@ -4,7 +4,10 @@ require('dotenv').config();
 
 const API_BASE_URL = 'https://api.the-odds-api.com/v4';
 const API_KEY = process.env.THE_ODDS_API_KEY;
-const SPORT = process.env.THE_ODDS_API_SPORT || 'soccer_epl';
+const SPORTS = (process.env.THE_ODDS_API_SPORT || 'soccer_epl')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
 const REGION = process.env.THE_ODDS_API_REGION || 'uk';
 const MARKETS = process.env.THE_ODDS_API_MARKETS || 'h2h';
 
@@ -51,32 +54,50 @@ function mapEvent(event) {
 }
 
 async function fetchEvents() {
-  try {
-    const response = await axios.get(`${API_BASE_URL}/sports/${SPORT}/odds`, {
-      params: {
-        apiKey: API_KEY,
-        regions: REGION,
-        markets: MARKETS,
-        dateFormat: 'iso',
-        oddsFormat: 'decimal',
-      },
-    });
-    const events = response.data || [];
-    if (events.length === 0) {
-      console.warn('The Odds API returned no events for the current request.');
-    }
-    return events;
-  } catch (err) {
-    if (err.response) {
-      console.error(
-        `The Odds API error (${err.response.status}):`,
-        err.response.data
-      );
+  const results = await Promise.allSettled(
+    SPORTS.map((sport) =>
+      axios.get(`${API_BASE_URL}/sports/${sport}/odds`, {
+        params: {
+          apiKey: API_KEY,
+          regions: REGION,
+          markets: MARKETS,
+          dateFormat: 'iso',
+          oddsFormat: 'decimal',
+        },
+      })
+    )
+  );
+
+  const events = [];
+  let allFailed = true;
+  results.forEach((res, idx) => {
+    const sport = SPORTS[idx];
+    if (res.status === 'fulfilled') {
+      allFailed = false;
+      events.push(...(res.value.data || []));
     } else {
-      console.error('The Odds API request failed:', err.message);
+      const err = res.reason;
+      if (err.response) {
+        console.error(
+          `The Odds API error for sport ${sport} (${err.response.status}):`,
+          err.response.data
+        );
+      } else {
+        console.error(
+          `The Odds API request for sport ${sport} failed:`,
+          err.message
+        );
+      }
     }
-    throw err;
+  });
+
+  if (events.length === 0) {
+    console.warn('The Odds API returned no events for the current request.');
   }
+  if (allFailed) {
+    throw new Error('Failed to fetch events from The Odds API');
+  }
+  return events;
 }
 
 async function getMatches(date) {
