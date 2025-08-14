@@ -239,11 +239,13 @@ bot.on('message', async (msg) => {
       matches
     ) {
       matches = matches.filter((m) =>
-        intent.teams.every((team) =>
-          `${m.teams.home.name} ${m.teams.away.name}`
-            .toLowerCase()
-            .includes(team.toLowerCase())
-        )
+        intent.teams.every((team) => {
+          const t = team.toLowerCase();
+          return (
+            m.teams.home.name.toLowerCase().includes(t) ||
+            m.teams.away.name.toLowerCase().includes(t)
+          );
+        })
       );
     }
 
