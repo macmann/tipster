@@ -6,10 +6,21 @@ const OpenAI = require('openai');
 
 const User = require('./models/User');
 
-const token = process.env.BOT_TOKEN;
+// Allow BOT_TOKEN or TELEGRAM_BOT_TOKEN to be supplied. dotenv does not
+// expand variables, so BOT_TOKEN may accidentally be set to the literal
+// string "$TELEGRAM_BOT_TOKEN" if the user mirrors the .env.example file.
+// Treat such placeholders as missing configuration.
+const token =
+  process.env.BOT_TOKEN && !process.env.BOT_TOKEN.startsWith('$')
+    ? process.env.BOT_TOKEN
+    : process.env.TELEGRAM_BOT_TOKEN;
 if (!token) {
   throw new Error('BOT_TOKEN not specified in .env');
 }
+
+// Base URL for the backend API that provides match data. This is configurable
+// so the bot can connect to a remote server instead of assuming localhost.
+const API_BASE_URL = process.env.API_BASE_URL || 'http://localhost:4000';
 
 const openaiKey = process.env.OPENAI_API_KEY;
 const openai = openaiKey
@@ -96,7 +107,7 @@ bot.on('message', async (msg) => {
 
   if (greetings.includes(lower)) {
     try {
-      const res = await axios.get('http://localhost:4000/matches-today');
+      const res = await axios.get(`${API_BASE_URL}/matches-today`);
       const lines = (res.data || [])
         .slice(0, 5)
         .map((m) => {
@@ -126,13 +137,13 @@ bot.on('message', async (msg) => {
 
   try {
     const intent = await extractIntent(text);
-    let endpoint = 'http://localhost:4000/matches-today';
-    if (intent && intent.date) {
-      const d = intent.date.toLowerCase();
-      if (d === 'tomorrow') endpoint = 'http://localhost:4000/matches-tomorrow';
-      else if (d !== 'today') endpoint = 'http://localhost:4000/matches-week';
-    }
-    let matchesRes = await axios.get(endpoint);
+      let endpoint = `${API_BASE_URL}/matches-today`;
+      if (intent && intent.date) {
+        const d = intent.date.toLowerCase();
+        if (d === 'tomorrow') endpoint = `${API_BASE_URL}/matches-tomorrow`;
+        else if (d !== 'today') endpoint = `${API_BASE_URL}/matches-week`;
+      }
+      let matchesRes = await axios.get(endpoint);
     let matches = matchesRes.data || [];
     if (
       intent &&
@@ -176,7 +187,7 @@ bot.on('message', async (msg) => {
 bot.onText(/\/today/, async (msg) => {
   const chatId = msg.chat.id;
   try {
-    const res = await axios.get('http://localhost:4000/matches-today');
+    const res = await axios.get(`${API_BASE_URL}/matches-today`);
     const lines = (res.data || [])
       .slice(0, 5)
       .map((m) => {
@@ -202,7 +213,7 @@ bot.onText(/\/today/, async (msg) => {
 bot.onText(/\/tomorrow/, async (msg) => {
   const chatId = msg.chat.id;
   try {
-    const res = await axios.get('http://localhost:4000/matches-tomorrow');
+    const res = await axios.get(`${API_BASE_URL}/matches-tomorrow`);
     const lines = (res.data || [])
       .slice(0, 5)
       .map((m) => {
@@ -229,7 +240,7 @@ bot.onText(/\/recommend/, async (msg) => {
   const chatId = msg.chat.id;
   const telegramId = String(msg.from.id);
   try {
-    const res = await axios.get('http://localhost:4000/recommend', {
+      const res = await axios.get(`${API_BASE_URL}/recommend`, {
       params: { userId: telegramId },
     });
     const lines = (res.data || [])
@@ -254,7 +265,7 @@ bot.onText(/\/rules(?:\s+(.+))?/, async (msg, match) => {
   if (payload) {
     try {
       const rules = JSON.parse(payload);
-      await axios.post(`http://localhost:4000/user/${telegramId}/rules`, rules);
+      await axios.post(`${API_BASE_URL}/user/${telegramId}/rules`, rules);
       bot.sendMessage(chatId, 'Rules updated.');
     } catch (err) {
       console.error('Error updating rules:', err);
@@ -263,7 +274,7 @@ bot.onText(/\/rules(?:\s+(.+))?/, async (msg, match) => {
     return;
   }
   try {
-    const res = await axios.get(`http://localhost:4000/user/${telegramId}/rules`);
+    const res = await axios.get(`${API_BASE_URL}/user/${telegramId}/rules`);
     if (res.data && res.data.rules) {
       bot.sendMessage(chatId, JSON.stringify(res.data.rules, null, 2));
     } else {
@@ -280,7 +291,7 @@ bot.onText(/\/results(?:\s+(\d{4}-\d{2}-\d{2}))?/, async (msg, match) => {
   const date = match[1];
   const params = date ? { date } : {};
   try {
-    const res = await axios.get('http://localhost:4000/results', { params });
+    const res = await axios.get(`${API_BASE_URL}/results`, { params });
     const lines = (res.data.response || [])
       .slice(0, 5)
       .map((r) => `${r.teams.home.name} ${r.goals.home} - ${r.goals.away} ${r.teams.away.name}`)
