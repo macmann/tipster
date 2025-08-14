@@ -39,10 +39,11 @@ async function generatePrediction(match) {
 async function getOrCreatePrediction(match) {
   const fixtureId = match?.fixture?.id;
   if (!fixtureId) return { aiPrediction: '', humanPrediction: '' };
-  let doc = await MatchPrediction.findOne({ fixtureId });
+  const idStr = String(fixtureId);
+  let doc = await MatchPrediction.findOne({ fixtureId: idStr });
   if (!doc) {
     const prediction = await generatePrediction(match);
-    doc = await MatchPrediction.create({ fixtureId, prediction });
+    doc = await MatchPrediction.create({ fixtureId: idStr, prediction });
   }
   return {
     aiPrediction: doc.prediction || '',
@@ -51,7 +52,7 @@ async function getOrCreatePrediction(match) {
 }
 
 async function getPrediction(fixtureId) {
-  const doc = await MatchPrediction.findOne({ fixtureId });
+  const doc = await MatchPrediction.findOne({ fixtureId: String(fixtureId) });
   return {
     aiPrediction: doc?.prediction || '',
     humanPrediction: doc?.human || '',
@@ -61,7 +62,7 @@ async function getPrediction(fixtureId) {
 async function setHumanPrediction(fixtureId, humanPrediction) {
   if (!fixtureId) return '';
   const doc = await MatchPrediction.findOneAndUpdate(
-    { fixtureId },
+    { fixtureId: String(fixtureId) },
     { human: humanPrediction },
     { new: true, upsert: true }
   );
@@ -71,10 +72,11 @@ async function setHumanPrediction(fixtureId, humanPrediction) {
 async function refreshPrediction(match) {
   const fixtureId = match?.fixture?.id;
   if (!fixtureId) return '';
+  const idStr = String(fixtureId);
   const prediction = await generatePrediction(match);
   if (!prediction) return '';
   await MatchPrediction.findOneAndUpdate(
-    { fixtureId },
+    { fixtureId: idStr },
     { prediction, createdAt: new Date() },
     { upsert: true }
   );
