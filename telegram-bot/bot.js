@@ -102,8 +102,14 @@ async function extractIntent(text) {
   }
   // Only parse first JSON object
   const jsonMatch = content.match(/{[\s\S]+}/);
-  if (jsonMatch) content = jsonMatch[0];
-  const intent = JSON.parse(content);
+  if (!jsonMatch) return null;
+  let intent;
+  try {
+    intent = JSON.parse(jsonMatch[0]);
+  } catch (err) {
+    console.error('Intent JSON parse error:', err);
+    return null;
+  }
   const genericWords = ['match', 'matches', 'game', 'games', 'for'];
   if (intent.teams && Array.isArray(intent.teams)) {
     intent.teams = intent.teams.filter(
