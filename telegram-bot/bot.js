@@ -84,7 +84,8 @@ async function extractIntent(text) {
   if (!openai) throw new Error('OpenAI API key not configured');
   const systemPrompt =
     'Extract the intended date (today, tomorrow or YYYY-MM-DD) and optional team names from the user question. ' +
-    'Ignore generic sports terms like "match", "matches", "game", and "games". ' +
+    'Ignore generic sports terms like "match", "matches", "game", "games", ' +
+    '"prediction", "predictions", "odds", "bet", "bets", "tip", and "tips". ' +
     'Respond ONLY with JSON in the form {"date": "today|tomorrow|YYYY-MM-DD", "teams": ["Team A", "Team B"]}.';
   const resp = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
@@ -110,7 +111,20 @@ async function extractIntent(text) {
     console.error('Intent JSON parse error:', err);
     return null;
   }
-  const genericWords = ['match', 'matches', 'game', 'games', 'for'];
+  const genericWords = [
+    'match',
+    'matches',
+    'game',
+    'games',
+    'for',
+    'prediction',
+    'predictions',
+    'tip',
+    'tips',
+    'odds',
+    'bet',
+    'bets',
+  ];
   if (intent.teams && Array.isArray(intent.teams)) {
     intent.teams = intent.teams.filter(
       (t) => !genericWords.includes(t.toLowerCase())
