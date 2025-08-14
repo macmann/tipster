@@ -36,6 +36,34 @@ mongoose.connect(process.env.MONGODB_URI, {
 
 const bot = new TelegramBot(token, { polling: true });
 
+// Telegram messages are limited to 4096 characters. If we try to send a
+// longer string the API rejects the request with HTTP 400. To keep responses
+// reliable we intercept sendMessage and split oversized messages into
+// multiple smaller ones. When possible we split by line so each match is
+// delivered individually.
+const MAX_MESSAGE_LENGTH = 4096;
+const originalSendMessage = bot.sendMessage.bind(bot);
+bot.sendMessage = async function sendMessage(chatId, text, options = {}) {
+  if (typeof text === 'string' && text.length > MAX_MESSAGE_LENGTH) {
+    const lines = text.includes('\n') ? text.split('\n') : [text];
+    let last;
+    for (const line of lines) {
+      if (line.length <= MAX_MESSAGE_LENGTH) {
+        if (line.trim()) {
+          last = await originalSendMessage(chatId, line, options);
+        }
+        continue;
+      }
+      for (let i = 0; i < line.length; i += MAX_MESSAGE_LENGTH) {
+        const chunk = line.slice(i, i + MAX_MESSAGE_LENGTH);
+        last = await originalSendMessage(chatId, chunk, options);
+      }
+    }
+    return last;
+  }
+  return originalSendMessage(chatId, text, options);
+};
+
 bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
   const telegramId = String(msg.from.id);
