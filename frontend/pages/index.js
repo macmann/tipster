@@ -9,6 +9,39 @@ const TABS = {
   settings: 'Settings'
 };
 
+const COMPETITIONS = {
+  England: [
+    { id: 39, name: 'Premier League' },
+    { id: 40, name: 'Championship' },
+    { id: 45, name: 'FA Cup' }
+  ],
+  Germany: [
+    { id: 78, name: 'Bundesliga' },
+    { id: 79, name: '2. Bundesliga' },
+    { id: 86, name: 'DFB Pokal' }
+  ],
+  France: [
+    { id: 61, name: 'Ligue 1' },
+    { id: 62, name: 'Ligue 2' },
+    { id: 66, name: 'Coupe de France' }
+  ],
+  Spain: [
+    { id: 140, name: 'La Liga' },
+    { id: 141, name: 'Segunda División' },
+    { id: 143, name: 'Copa del Rey' }
+  ],
+  Italy: [
+    { id: 135, name: 'Serie A' },
+    { id: 136, name: 'Serie B' },
+    { id: 137, name: 'Coppa Italia' }
+  ],
+  Netherlands: [
+    { id: 88, name: 'Eredivisie' },
+    { id: 89, name: 'Eerste Divisie' },
+    { id: 90, name: 'KNVB Beker' }
+  ]
+};
+
 export default function Home() {
   const [tab, setTab] = useState('today');
   const [matches, setMatches] = useState([]);
@@ -17,8 +50,7 @@ export default function Home() {
   const [leagueFilter, setLeagueFilter] = useState('');
   const [leagues, setLeagues] = useState([]);
   const [withOddsOnly, setWithOddsOnly] = useState(true);
-  const [topSixOnly, setTopSixOnly] = useState(false);
-  const [euroCupsOnly, setEuroCupsOnly] = useState(false);
+  const [selectedLeagues, setSelectedLeagues] = useState([]);
   const [expandedMatches, setExpandedMatches] = useState({});
   const [aiModal, setAiModal] = useState(false);
   const [aiResult, setAiResult] = useState('');
@@ -33,7 +65,12 @@ export default function Home() {
     setError(null);
     try {
       const endpoint = tab === 'week' ? 'matches-week' : `matches-${tab}`;
-      const url = `http://localhost:4000/${endpoint}?top6=${topSixOnly}&euro=${euroCupsOnly}${forceRefresh ? '&refresh=true' : ''}`;
+      const params = new URLSearchParams();
+      if (selectedLeagues.length)
+        params.append('leagues', selectedLeagues.join(','));
+      if (forceRefresh) params.append('refresh', 'true');
+      const paramString = params.toString();
+      const url = `http://localhost:4000/${endpoint}${paramString ? `?${paramString}` : ''}`;
       const res = await fetch(url);
       let data;
       if (!res.ok) {
@@ -58,7 +95,7 @@ export default function Home() {
   useEffect(() => {
     if (tab === 'settings') return;
     fetchMatches();
-  }, [tab, topSixOnly, euroCupsOnly]);
+  }, [tab, selectedLeagues]);
 
   const renderOdds = (match) => {
     const values =
@@ -275,23 +312,31 @@ export default function Home() {
         ))}
       </div>
       {tab === 'settings' ? (
-        <div className="mb-4 space-y-2">
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={topSixOnly}
-              onChange={(e) => setTopSixOnly(e.target.checked)}
-            />
-            Top 6 leagues
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={euroCupsOnly}
-              onChange={(e) => setEuroCupsOnly(e.target.checked)}
-            />
-            European competitions
-          </label>
+        <div className="mb-4 space-y-4">
+          {Object.entries(COMPETITIONS).map(([country, comps]) => (
+            <div key={country}>
+              <h3 className="font-semibold">{country}</h3>
+              {comps.map((comp) => (
+                <label
+                  key={comp.id}
+                  className="flex items-center gap-2 ml-4"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedLeagues.includes(comp.id)}
+                    onChange={(e) =>
+                      setSelectedLeagues((prev) =>
+                        e.target.checked
+                          ? [...prev, comp.id]
+                          : prev.filter((id) => id !== comp.id)
+                      )
+                    }
+                  />
+                  {comp.name}
+                </label>
+              ))}
+            </div>
+          ))}
         </div>
       ) : (
         <>

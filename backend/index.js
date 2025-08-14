@@ -26,13 +26,6 @@ const openai = openaiKey ? new OpenAI({ apiKey: openaiKey }) : null;
 
 const app = express();
 
-const TOP_LEAGUE_IDS = [39, 40, 140, 141, 135, 136, 78, 79, 61, 62, 88, 89];
-const EURO_CUP_KEYWORDS = [
-  'UEFA Champions League',
-  'UEFA Europa League',
-  'UEFA Europa Conference League',
-  'UEFA Super Cup'
-];
 const MATCH_REQUEST_DELAY_MS = Number(process.env.MATCH_REQUEST_DELAY_MS) || 1000;
 
 // Enable CORS for the frontend running on localhost:3000
@@ -58,19 +51,10 @@ function formatDate(date) {
   return date.toISOString().split('T')[0];
 }
 
-function isTopSixLeague(league) {
-  return TOP_LEAGUE_IDS.includes(league?.id);
-}
-
-function isEuroCup(league) {
-  return EURO_CUP_KEYWORDS.some((keyword) => league?.name?.includes(keyword));
-}
-
-function filterLeagues(matches, topSix = false, euroCups = false) {
-  if (!topSix && !euroCups) return matches;
-  return matches.filter(
-    (m) => (topSix && isTopSixLeague(m.league)) || (euroCups && isEuroCup(m.league))
-  );
+function filterLeagues(matches, leagueIds = []) {
+  if (!leagueIds.length) return matches;
+  const ids = leagueIds.map(Number);
+  return matches.filter((m) => ids.includes(m.league?.id));
 }
 
 async function enrichMatchesWithOdds(matches) {
@@ -118,12 +102,13 @@ async function getCachedMatches(date, refresh = false) {
 
 app.get('/matches-today', async (req, res, next) => {
   const today = formatDate(new Date());
-  const topSix = req.query.top6 === 'true';
-  const euroCups = req.query.euro === 'true';
+  const leagueIds = req.query.leagues
+    ? req.query.leagues.split(',').map(Number).filter(Boolean)
+    : [];
   const refresh = req.query.refresh === 'true';
   try {
     const matches = await getCachedMatches(today, refresh);
-    const filtered = filterLeagues(matches, topSix, euroCups);
+    const filtered = filterLeagues(matches, leagueIds);
     res.json(filtered);
   } catch (err) {
     console.error(err);
@@ -136,12 +121,13 @@ app.get('/matches-tomorrow', async (req, res, next) => {
   const d = new Date();
   d.setDate(d.getDate() + 1);
   const date = formatDate(d);
-  const topSix = req.query.top6 === 'true';
-  const euroCups = req.query.euro === 'true';
+  const leagueIds = req.query.leagues
+    ? req.query.leagues.split(',').map(Number).filter(Boolean)
+    : [];
   const refresh = req.query.refresh === 'true';
   try {
     const matches = await getCachedMatches(date, refresh);
-    const filtered = filterLeagues(matches, topSix, euroCups);
+    const filtered = filterLeagues(matches, leagueIds);
     res.json(filtered);
   } catch (err) {
     console.error(err);
@@ -153,8 +139,9 @@ app.get('/matches-tomorrow', async (req, res, next) => {
 app.get('/matches-week', async (req, res, next) => {
   const today = new Date();
   const all = [];
-  const topSix = req.query.top6 === 'true';
-  const euroCups = req.query.euro === 'true';
+  const leagueIds = req.query.leagues
+    ? req.query.leagues.split(',').map(Number).filter(Boolean)
+    : [];
   const refresh = req.query.refresh === 'true';
   try {
     for (let i = 0; i < 7; i++) {
@@ -162,7 +149,7 @@ app.get('/matches-week', async (req, res, next) => {
       d.setDate(d.getDate() + i);
       const date = formatDate(d);
       const matches = await getCachedMatches(date, refresh);
-      const filtered = filterLeagues(matches, topSix, euroCups);
+      const filtered = filterLeagues(matches, leagueIds);
       all.push(...filtered);
     }
     res.json(all);
