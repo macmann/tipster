@@ -130,10 +130,11 @@ async function getMatchesWeek() {
 async function extractIntent(text) {
   if (!openai) throw new Error('OpenAI API key not configured');
   const systemPrompt =
-    'Extract the intended date (today, tomorrow or YYYY-MM-DD) and optional team names from the user question. ' +
+    'Extract the intended date (today, tomorrow, this week or YYYY-MM-DD) and optional team names from the user question. ' +
     'Ignore generic sports terms like "match", "matches", "game", "games", ' +
     '"prediction", "predictions", "odds", "bet", "bets", "tip", and "tips". ' +
-    'Respond ONLY with JSON in the form {"date": "today|tomorrow|YYYY-MM-DD", "teams": ["Team A", "Team B"]}.';
+    'If no date is given, set "date" to null. ' +
+    'Respond ONLY with JSON in the form {"date": "today|tomorrow|this week|YYYY-MM-DD|null", "teams": ["Team A", "Team B"]}.';
   const resp = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [
@@ -171,6 +172,8 @@ async function extractIntent(text) {
     'odds',
     'bet',
     'bets',
+    'this',
+    'week',
   ];
   if (intent.teams && Array.isArray(intent.teams)) {
     intent.teams = intent.teams.filter(
@@ -208,27 +211,33 @@ bot.on('message', async (msg) => {
 
   try {
     const intent = await extractIntent(text);
-    let matches = await getMatchesToday();
-    if (intent && intent.date) {
+    const lowerMsg = text.toLowerCase();
+
+    const explicitlyMentionedDate = /\b(today|tomorrow|\d{4}-\d{2}-\d{2}|week)\b/.test(
+      lowerMsg
+    );
+
+    let matches;
+    if (explicitlyMentionedDate && intent && intent.date) {
       const d = intent.date.toLowerCase();
       if (d === 'tomorrow') matches = await getMatchesTomorrow();
-      else if (d !== 'today') {
-        const isSpecific = /^\d{4}-\d{2}-\d{2}$/.test(intent.date);
-        if (isSpecific) matches = await getMatchesForDate(intent.date);
-        else matches = await getMatchesWeek();
-      }
+      else if (d === 'today') matches = await getMatchesToday();
+      else if (/^\d{4}-\d{2}-\d{2}$/.test(intent.date))
+        matches = await getMatchesForDate(intent.date);
+      else matches = await getMatchesWeek();
     } else if (intent && Array.isArray(intent.teams) && intent.teams.length) {
-      // Search the upcoming week when looking for a team without a specific date
+      // If user mentioned teams without a clear date, search the upcoming week
       matches = await getMatchesWeek();
+    } else {
+      matches = await getMatchesToday();
     }
-    if (intent && intent.date) {
-      const d = intent.date.toLowerCase();
-      const isSpecific = /^\d{4}-\d{2}-\d{2}$/.test(intent.date);
-      if (!['today', 'tomorrow'].includes(d) && isSpecific) {
-        matches = matches.filter((m) => m.fixture.date.startsWith(intent.date));
-      }
-    }
-    if (intent && Array.isArray(intent.teams) && intent.teams.length) {
+
+    if (
+      intent &&
+      Array.isArray(intent.teams) &&
+      intent.teams.length &&
+      matches
+    ) {
       matches = matches.filter((m) =>
         intent.teams.every((team) =>
           `${m.teams.home.name} ${m.teams.away.name}`
