@@ -63,19 +63,21 @@ async function enrichMatchesWithOdds(matches) {
     try {
       const odds = await getOdds(m.fixture.id);
       const myanmarBet = getMyanmarBet(odds.response);
-      const { humanPrediction } = await getPrediction(m.fixture.id);
+      const { aiPrediction, humanPrediction } = await getPrediction(m.fixture.id);
       enriched.push({
         ...m,
         odds: odds.response,
         myanmarBet,
+        aiPrediction,
         humanPrediction,
       });
     } catch (err) {
-      const { humanPrediction } = await getPrediction(m.fixture.id);
+      const { aiPrediction, humanPrediction } = await getPrediction(m.fixture.id);
       enriched.push({
         ...m,
         odds: [],
         myanmarBet: null,
+        aiPrediction,
         humanPrediction,
       });
     }
@@ -97,7 +99,13 @@ async function getCachedMatches(date, refresh = false) {
       { upsert: true, new: true }
     );
   }
-  return doc.matches;
+  const matchesWithPredictions = await Promise.all(
+    doc.matches.map(async (m) => {
+      const { aiPrediction, humanPrediction } = await getPrediction(m.fixture.id);
+      return { ...m, aiPrediction, humanPrediction };
+    })
+  );
+  return matchesWithPredictions;
 }
 
 app.get('/matches-today', async (req, res, next) => {

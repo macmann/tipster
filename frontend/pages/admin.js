@@ -132,6 +132,7 @@ export default function Admin() {
                     <textarea
                       className="w-full border p-1 mb-2"
                       value={inputs[m.fixture?.id] ?? m.humanPrediction ?? ''}
+                      onClick={(e) => e.stopPropagation()}
                       onChange={(e) => handleInputChange(m.fixture?.id, e.target.value)}
                     />
                     <button
