@@ -27,7 +27,7 @@ async function generatePrediction(match) {
       model: 'gpt-4.1-mini',
       input: prompt,
       tools: [{ type: 'web_search' }],
-      max_output_tokens: 500,
+      max_output_tokens: 1000,
     });
     return resp.output_text?.trim() || '';
   } catch (err) {
