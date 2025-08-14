@@ -154,15 +154,35 @@ async function getMatchesWeek() {
   return all;
 }
 
+function nextDateByName(name) {
+  const days = [
+    'sunday',
+    'monday',
+    'tuesday',
+    'wednesday',
+    'thursday',
+    'friday',
+    'saturday',
+  ];
+  const today = new Date();
+  const target = days.indexOf(name.toLowerCase());
+  if (target === -1) return null;
+  let diff = (target - today.getDay() + 7) % 7;
+  if (diff === 0) diff = 7;
+  const d = new Date(today);
+  d.setDate(today.getDate() + diff);
+  return d;
+}
+
 // Lightweight intent extraction with OpenAI for date/teams
 async function extractIntent(text) {
   if (!openai) throw new Error('OpenAI API key not configured');
   const systemPrompt =
-    'Extract the intended date (today, tomorrow, this week or YYYY-MM-DD) and optional team names from the user question. ' +
+    'Extract the intended date (today, tomorrow, this week, any weekday name or YYYY-MM-DD) and optional team names from the user question. ' +
     'Ignore generic sports terms like "match", "matches", "game", "games", ' +
     '"prediction", "predictions", "odds", "bet", "bets", "tip", and "tips". ' +
     'If no date is given, set "date" to null. ' +
-    'Respond ONLY with JSON in the form {"date": "today|tomorrow|this week|YYYY-MM-DD|null", "teams": ["Team A", "Team B"]}.';
+    'Respond ONLY with JSON in the form {"date": "today|tomorrow|this week|monday|tuesday|wednesday|thursday|friday|saturday|sunday|YYYY-MM-DD|null", "teams": ["Team A", "Team B"]}.';
   const resp = await openai.chat.completions.create({
     model: 'gpt-4o-mini',
     messages: [
@@ -240,8 +260,11 @@ bot.on('message', async (msg) => {
   try {
     const intent = await extractIntent(text);
     const lowerMsg = text.toLowerCase();
+    const weekdayMatch = lowerMsg.match(
+      /\b(monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/
+    );
 
-    const explicitlyMentionedDate = /\b(today|tomorrow|\d{4}-\d{2}-\d{2}|week)\b/.test(
+    const explicitlyMentionedDate = /\b(today|tomorrow|\d{4}-\d{2}-\d{2}|week|monday|tuesday|wednesday|thursday|friday|saturday|sunday)\b/.test(
       lowerMsg
     );
 
@@ -250,9 +273,19 @@ bot.on('message', async (msg) => {
       const d = intent.date.toLowerCase();
       if (d === 'tomorrow') matches = await getMatchesTomorrow();
       else if (d === 'today') matches = await getMatchesToday();
-      else if (/^\d{4}-\d{2}-\d{2}$/.test(intent.date))
+      else if (
+        ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].includes(
+          d
+        )
+      ) {
+        const next = nextDateByName(d);
+        matches = next ? await getMatchesForDate(formatDate(next)) : [];
+      } else if (/^\d{4}-\d{2}-\d{2}$/.test(intent.date))
         matches = await getMatchesForDate(intent.date);
       else matches = await getMatchesWeek();
+    } else if (weekdayMatch) {
+      const next = nextDateByName(weekdayMatch[1]);
+      matches = next ? await getMatchesForDate(formatDate(next)) : [];
     } else if (intent && Array.isArray(intent.teams) && intent.teams.length) {
       // If user mentioned teams without a clear date, search the upcoming week
       matches = await getMatchesWeek();
