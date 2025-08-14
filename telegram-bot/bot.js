@@ -57,17 +57,26 @@ bot.onText(/\/start/, async (msg) => {
 function formatOdds(match) {
   const values =
     match.odds?.[0]?.bookmakers?.[0]?.bets?.[0]?.values || [];
-  return (
-    values.map((v) => `${v.value || v.name}: ${v.odd}`).join(', ') || 'N/A'
-  );
+  if (!values.length) return 'no odds available';
+  return values.map((v) => `${v.value || v.name} at ${v.odd}`).join(', ');
 }
 
 function formatPrediction(match) {
-  const ai = match.aiPrediction || 'N/A';
-  const human = match.humanPrediction
-    ? `, Human: ${match.humanPrediction}`
-    : '';
-  return `AI: ${ai}${human}`;
+  const ai = match.aiPrediction;
+  const human = match.humanPrediction;
+  if (ai && human) return `Our AI leans ${ai} and a human suggests ${human}`;
+  if (ai) return `Our AI leans ${ai}`;
+  if (human) return `A human suggests ${human}`;
+  return 'No prediction yet';
+}
+
+function describeMatch(match) {
+  const kickoff = match.fixture?.date
+    ? new Date(match.fixture.date).toLocaleString()
+    : 'soon';
+  const odds = formatOdds(match);
+  const prediction = formatPrediction(match);
+  return `${match.teams.home.name} meet ${match.teams.away.name} on ${kickoff}. Odds suggest ${odds}. ${prediction}.`;
 }
 
 // Lightweight intent extraction with OpenAI for date/teams
@@ -116,27 +125,14 @@ bot.on('message', async (msg) => {
   if (greetings.includes(lower)) {
     try {
       const res = await axios.get(`${API_BASE_URL}/matches-today`);
-      const lines = (res.data || [])
-        .slice(0, 5)
-        .map((m) => {
-          const kickoff = m.fixture?.date
-            ? new Date(m.fixture.date).toLocaleString()
-            : '-';
-          return `${m.teams.home.name} vs ${m.teams.away.name} (${kickoff}) - Odds: ${formatOdds(m)} - Prediction: ${formatPrediction(m)}`;
-        })
-        .join('\n');
-
-      const response =
-        lines
-          ? `${lines}\n\nIf you want more or prediction about specific match, pls ask`
-          : 'No matches found. If you want more or prediction about specific match, pls ask';
-      bot.sendMessage(chatId, response);
-    } catch (err) {
-      console.error('Error fetching matches:', err);
+      const lines = (res.data || []).slice(0, 5).map(describeMatch);
       bot.sendMessage(
         chatId,
-        'Failed to fetch matches. If you want more or prediction about specific match, pls ask'
+        lines.length ? lines.join('\n') : 'I could not find matches right now.'
       );
+    } catch (err) {
+      console.error('Error fetching matches:', err);
+      bot.sendMessage(chatId, 'Failed to fetch matches.');
     }
     return;
   }
@@ -173,21 +169,13 @@ bot.on('message', async (msg) => {
       );
     }
 
-    const lines = matches
-      .slice(0, 5)
-      .map((m) => {
-        const kickoff = m.fixture?.date
-          ? new Date(m.fixture.date).toLocaleString()
-          : '-';
-        return `${m.teams.home.name} vs ${m.teams.away.name} (${kickoff}) - Odds: ${formatOdds(m)} - Prediction: ${formatPrediction(m)}`;
-      })
-      .join('\n');
-
-    const response =
-      lines
-        ? `${lines}\n\nIf you want more or prediction about specific match, pls ask`
-        : 'No upcoming matches found for your query. If you want more or prediction about specific match, pls ask';
-    bot.sendMessage(chatId, response);
+    const lines = matches.slice(0, 5).map(describeMatch);
+    bot.sendMessage(
+      chatId,
+      lines.length
+        ? lines.join('\n')
+        : 'No upcoming matches found for your query.'
+    );
   } catch (err) {
     console.error('Natural language error:', err);
     bot.sendMessage(chatId, 'Sorry, I could not process your request.');
@@ -199,22 +187,11 @@ bot.onText(/\/today/, async (msg) => {
   const chatId = msg.chat.id;
   try {
     const res = await axios.get(`${API_BASE_URL}/matches-today`);
-    const lines = (res.data || [])
-      .slice(0, 5)
-      .map((m) => {
-        const kickoff = m.fixture?.date
-          ? new Date(m.fixture.date).toLocaleString()
-          : '-';
-        return `${m.teams.home.name} vs ${m.teams.away.name} (${kickoff}) - Odds: ${formatOdds(
-          m
-        )} - Prediction: ${formatPrediction(m)}`;
-      })
-      .join('\n');
-    const response =
-      lines
-        ? `${lines}\n\nIf you want more or prediction about specific match, pls ask`
-        : 'No matches found. If you want more or prediction about specific match, pls ask';
-    bot.sendMessage(chatId, response);
+    const lines = (res.data || []).slice(0, 5).map(describeMatch);
+    bot.sendMessage(
+      chatId,
+      lines.length ? lines.join('\n') : 'No matches found.'
+    );
   } catch (err) {
     console.error('Error fetching matches:', err);
     bot.sendMessage(chatId, 'Failed to fetch matches.');
@@ -225,22 +202,11 @@ bot.onText(/\/tomorrow/, async (msg) => {
   const chatId = msg.chat.id;
   try {
     const res = await axios.get(`${API_BASE_URL}/matches-tomorrow`);
-    const lines = (res.data || [])
-      .slice(0, 5)
-      .map((m) => {
-        const kickoff = m.fixture?.date
-          ? new Date(m.fixture.date).toLocaleString()
-          : '-';
-        return `${m.teams.home.name} vs ${m.teams.away.name} (${kickoff}) - Odds: ${formatOdds(
-          m
-        )} - Prediction: ${formatPrediction(m)}`;
-      })
-      .join('\n');
-    const response =
-      lines
-        ? `${lines}\n\nIf you want more or prediction about specific match, pls ask`
-        : 'No matches found. If you want more or prediction about specific match, pls ask';
-    bot.sendMessage(chatId, response);
+    const lines = (res.data || []).slice(0, 5).map(describeMatch);
+    bot.sendMessage(
+      chatId,
+      lines.length ? lines.join('\n') : 'No matches found.'
+    );
   } catch (err) {
     console.error('Error fetching matches:', err);
     bot.sendMessage(chatId, 'Failed to fetch matches.');
@@ -257,12 +223,14 @@ bot.onText(/\/recommend/, async (msg) => {
     const lines = (res.data || [])
       .slice(0, 5)
       .map((r) => {
-        const odd = r.odd ? r.odd : 'N/A';
-        const rationale = r.rationale ? ` - Reason: ${r.rationale}` : '';
-        return `${r.teams.home.name} vs ${r.teams.away.name} - Bet: ${r.recommendedBet} @ ${odd}${rationale}`;
-      })
-      .join('\n');
-    bot.sendMessage(chatId, lines || 'No recommendations found.');
+        const odd = r.odd ? ` at ${r.odd}` : '';
+        const reason = r.rationale ? ` because ${r.rationale}` : '';
+        return `${r.teams.home.name} face ${r.teams.away.name}; consider ${r.recommendedBet}${odd}${reason}.`;
+      });
+    bot.sendMessage(
+      chatId,
+      lines.length ? lines.join('\n') : 'No recommendations found.'
+    );
   } catch (err) {
     console.error('Error fetching recommendations:', err);
     bot.sendMessage(chatId, 'Failed to fetch recommendations.');
@@ -305,9 +273,15 @@ bot.onText(/\/results(?:\s+(\d{4}-\d{2}-\d{2}))?/, async (msg, match) => {
     const res = await axios.get(`${API_BASE_URL}/results`, { params });
     const lines = (res.data.response || [])
       .slice(0, 5)
-      .map((r) => `${r.teams.home.name} ${r.goals.home} - ${r.goals.away} ${r.teams.away.name}`)
-      .join('\n');
-    bot.sendMessage(chatId, lines || 'No results found.');
+      .map((r) => {
+        const home = r.teams.home.name;
+        const away = r.teams.away.name;
+        return `${home} ${r.goals.home} to ${r.goals.away} ${away}.`;
+      });
+    bot.sendMessage(
+      chatId,
+      lines.length ? lines.join('\n') : 'No results found.'
+    );
   } catch (err) {
     console.error('Error fetching results:', err);
     bot.sendMessage(chatId, 'Failed to fetch results.');
