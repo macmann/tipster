@@ -59,64 +59,104 @@ export default function RuleBuilder({ userId }) {
   }
 
   return (
-    <div className="mb-8 border p-4">
-      <h2 className="text-xl font-semibold mb-2">Rule Builder</h2>
-      <form onSubmit={handleSubmit} className="space-y-2">
-        <div>
-          <label className="mr-2">Min Odds:</label>
+    <div>
+      <h2 className="text-xl font-semibold text-neutral-900">Rule Builder</h2>
+      <p className="mt-2 text-sm text-neutral-700">
+        Configure limits that mirror your bankroll plan. Saved rules inform recommendations on the web
+        app and Telegram bot, ensuring we never push markets that fall outside your comfort zone.
+      </p>
+      <form onSubmit={handleSubmit} className="mt-4 grid gap-4 md:grid-cols-2">
+        <label className="flex flex-col text-sm font-medium text-neutral-800">
+          Minimum Odds
           <input
             type="number"
             step="0.01"
             value={minOdds}
             onChange={(e) => setMinOdds(e.target.value)}
-            className="border px-1"
+            className="mt-1 rounded border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-neutral-600 focus:outline-none"
+            placeholder="e.g. 1.60"
           />
-        </div>
-        <div>
-          <label className="mr-2">Max Odds:</label>
+          <span className="mt-1 text-xs font-normal text-neutral-600">
+            Avoid extremely short prices that offer limited upside.
+          </span>
+        </label>
+        <label className="flex flex-col text-sm font-medium text-neutral-800">
+          Maximum Odds
           <input
             type="number"
             step="0.01"
             value={maxOdds}
             onChange={(e) => setMaxOdds(e.target.value)}
-            className="border px-1"
+            className="mt-1 rounded border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-neutral-600 focus:outline-none"
+            placeholder="e.g. 3.80"
           />
-        </div>
-        <div>
-          <label className="mr-2">Value Score Threshold:</label>
+          <span className="mt-1 text-xs font-normal text-neutral-600">
+            Cap exposure to long shots that rely on high variance outcomes.
+          </span>
+        </label>
+        <label className="flex flex-col text-sm font-medium text-neutral-800">
+          Value Score Threshold
           <input
             type="number"
             step="0.01"
             value={valueScore}
             onChange={(e) => setValueScore(e.target.value)}
-            className="border px-1"
+            className="mt-1 rounded border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-neutral-600 focus:outline-none"
+            placeholder="e.g. 1.10"
           />
-        </div>
-        <div>
-          <label className="mr-2">League:</label>
+          <span className="mt-1 text-xs font-normal text-neutral-600">
+            Higher scores mean a larger edge between our model and the market price.
+          </span>
+        </label>
+        <label className="flex flex-col text-sm font-medium text-neutral-800">
+          Preferred League
           <input
             type="text"
             value={league}
             onChange={(e) => setLeague(e.target.value)}
-            className="border px-1"
+            className="mt-1 rounded border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-neutral-600 focus:outline-none"
+            placeholder="Premier League, La Liga..."
           />
+          <span className="mt-1 text-xs font-normal text-neutral-600">
+            Sticking to familiar competitions improves decision quality.
+          </span>
+        </label>
+        <div className="md:col-span-2">
+          <button
+            type="submit"
+            disabled={loading}
+            className="rounded border border-neutral-300 bg-neutral-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-neutral-700 disabled:cursor-not-allowed disabled:bg-neutral-500"
+          >
+            {loading ? 'Saving…' : 'Save Rules'}
+          </button>
         </div>
-        <button type="submit" disabled={loading} className="px-2 py-1 border">
-          {loading ? 'Saving...' : 'Save Rules'}
-        </button>
       </form>
-      <h3>Active Rules</h3>
-      <ul>
-        {minOdds && <li>Min Odds: {minOdds}</li>}
-        {maxOdds && <li>Max Odds: {maxOdds}</li>}
-        {valueScore && <li>Value Score ≥ {valueScore}</li>}
-        {league && <li>League: {league}</li>}
-        {!minOdds && !maxOdds && !valueScore && !league && (
-          <li>No rules set</li>
-        )}
-      </ul>
-      {loadError && <p className="text-red-600">{loadError}</p>}
-      {status && <p className="text-green-600 mt-1">{status}</p>}
+      <section className="mt-6 rounded border border-neutral-200 bg-neutral-50 p-4 text-sm text-neutral-700">
+        <h3 className="text-lg font-semibold text-neutral-900">Active Rules</h3>
+        <ul className="mt-2 list-disc space-y-1 pl-5">
+          {minOdds && <li>Minimum odds: {minOdds}</li>}
+          {maxOdds && <li>Maximum odds: {maxOdds}</li>}
+          {valueScore && <li>Value score must be at least {valueScore}</li>}
+          {league && <li>Preferred league focus: {league}</li>}
+          {!minOdds && !maxOdds && !valueScore && !league && (
+            <li>No rules configured yet—use the form above to create your first guardrails.</li>
+          )}
+        </ul>
+      </section>
+      {loadError && (
+        <p className="mt-3 text-sm font-medium text-red-600" role="alert">
+          {loadError}
+        </p>
+      )}
+      {status && (
+        <p
+          className="mt-3 text-sm font-medium text-green-600"
+          role="status"
+          aria-live="polite"
+        >
+          {status}
+        </p>
+      )}
     </div>
   );
 }

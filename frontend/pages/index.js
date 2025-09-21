@@ -1,6 +1,55 @@
 import { useState, useEffect } from 'react';
-import { getMyanmarBet } from '../utils/myanmarOdds';
+import Layout from '@/components/Layout';
 import Markdown from '../components/Markdown';
+import { getMyanmarBet } from '../utils/myanmarOdds';
+
+const QUALITY_PILLARS = [
+  {
+    title: 'Human-Led Analysis',
+    description:
+      'Every preview combines quantitative models with editorial judgement so that readers understand the story behind the odds.',
+    bullets: [
+      'Writers review recent form, injuries, tactical setups, and weather conditions.',
+      'Editors cross-check insights with verified league and club sources before publication.'
+    ]
+  },
+  {
+    title: 'Transparent Data Sources',
+    description:
+      'We reference where numbers come from, highlight limitations, and avoid overpromising certainty when markets move quickly.',
+    bullets: [
+      'Odds are refreshed directly from licensed bookmakers and timestamped on each refresh.',
+      'Historical performance metrics are quoted with the sample size so readers can weigh confidence.'
+    ]
+  },
+  {
+    title: 'Responsible Betting Guidance',
+    description:
+      'Our coverage emphasises bankroll discipline and a long-term view. We never promote unrealistic “guaranteed” wins.',
+    bullets: [
+      'Every page reiterates the risks of gambling and links to independent support organisations.',
+      'We include staking tips, variance explanations, and reminders to set personal limits.'
+    ]
+  }
+];
+
+const FAQ_ITEMS = [
+  {
+    question: 'How are Tipster match recommendations created?',
+    answer:
+      'Our analysts review bookmaker lines, injury news, and tactical matchups. Machine-learning models surface pricing mismatches, but human reviewers write the final recommendation to ensure context and responsible tone.'
+  },
+  {
+    question: 'What should I do if odds are different from what is listed here?',
+    answer:
+      'Odds shift constantly. Treat our prices as a snapshot in time and always verify them with a licensed bookmaker in your region before placing a wager.'
+  },
+  {
+    question: 'Does Tipster guarantee profits?',
+    answer:
+      'No. Betting carries financial risk and should only be done with discretionary funds. We publish educational material and analysis so you can make informed decisions, not to promise outcomes.'
+  }
+];
 
 const TABS = {
   today: 'Today',
@@ -242,205 +291,330 @@ export default function Home() {
     );
 
   return (
-    <div className="p-4">
-      <nav className="mb-4">
-        <a href="/" className="mr-2">Matches</a>
-        |
-        <a href="/recommendations" className="mx-2">Recommendations</a>
-        |
-        <a href="/rule-builder" className="ml-2">Rule Builder</a>
-        |
-        <a href="/admin" className="ml-2">Admin</a>
-      </nav>
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-semibold">Match List</h1>
-        {tab !== 'settings' && (
-          <button
-            className="px-2 py-1 border rounded"
-            onClick={() => fetchMatches(true)}
-          >
-            Refresh Matches
-          </button>
-        )}
-      </div>
-      {tab !== 'settings' && (
-        <div className="flex items-center gap-2 mb-4">
-          <label htmlFor="league-filter">League:</label>
-          <input
-            id="league-filter"
-            type="text"
-            list="league-options"
-            value={leagueFilter}
-            onChange={(e) => setLeagueFilter(e.target.value)}
-            placeholder="Type or select league"
-            className="border px-1 py-0.5"
-          />
-          <datalist id="league-options">
-            {leagues.map((l) => (
-              <option key={l} value={l} />
-            ))}
-          </datalist>
-          {leagueFilter && (
+    <Layout
+      title="Football Fixtures, Odds & Expert Betting Insights"
+      description="Browse today’s and upcoming football fixtures, compare bookmaker odds, and read Tipster’s editorial match analysis with responsible gambling context."
+    >
+      <section className="rounded-lg bg-white p-6 shadow-sm">
+        <h1 className="text-3xl font-semibold">Daily Football Intelligence Centre</h1>
+        <p className="mt-4 text-lg leading-relaxed text-neutral-700">
+          Welcome to Tipster’s match hub where each fixture is paired with transparent odds,
+          original editorial notes, and the context you need before placing a bet. We blend
+          real-time feeds with human expertise so the page remains valuable even if odds feeds
+          are delayed or temporarily unavailable.
+        </p>
+        <p className="mt-4 text-neutral-700">
+          Select a tab to explore fixtures or customise the coverage to your favourite leagues.
+          Use the settings panel to subscribe to specific competitions, and reference the
+          methodology and responsible betting tips below to understand how we build our advice.
+        </p>
+      </section>
+
+      <section aria-labelledby="match-centre-heading" className="mt-10">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 id="match-centre-heading" className="text-2xl font-semibold">
+              Match Centre
+            </h2>
+            <p className="mt-1 text-sm text-neutral-600">
+              Updated every 15 minutes. Odds are indicative snapshots and may change.
+            </p>
+          </div>
+          {tab !== 'settings' && (
             <button
-              className="text-blue-600 underline"
-              onClick={() => setLeagueFilter('')}
+              className="self-start rounded border border-neutral-300 px-3 py-1 text-sm font-medium hover:bg-neutral-100"
+              onClick={() => fetchMatches(true)}
             >
-              Clear
+              Refresh Odds &amp; Fixtures
             </button>
           )}
-          <label className="flex items-center gap-1 ml-4">
-            <input
-              type="checkbox"
-              checked={withOddsOnly}
-              onChange={(e) => setWithOddsOnly(e.target.checked)}
-            />
-            Only with odds
-          </label>
         </div>
-      )}
-      <div className="flex justify-center gap-2 mb-4">
-        {Object.entries(TABS).map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`px-2 py-1 border rounded ${
-              tab === key ? 'bg-neutral-800 text-white' : 'bg-neutral-200'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      {tab === 'settings' ? (
-        <div className="mb-4 space-y-4">
-          {Object.entries(COMPETITIONS).map(([country, comps]) => (
-            <div key={country}>
-              <h3 className="font-semibold">{country}</h3>
-              {comps.map((comp) => (
-                <label
-                  key={comp.id}
-                  className="flex items-center gap-2 ml-4"
+        {tab !== 'settings' && (
+          <div className="mt-4 flex flex-col gap-3 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm md:flex-row md:items-end">
+            <div className="flex flex-1 flex-col">
+              <label htmlFor="league-filter" className="text-sm font-medium text-neutral-700">
+                Filter by league name
+              </label>
+              <input
+                id="league-filter"
+                type="text"
+                list="league-options"
+                value={leagueFilter}
+                onChange={(e) => setLeagueFilter(e.target.value)}
+                placeholder="Type to search for Premier League, La Liga, Serie A..."
+                className="mt-1 rounded border border-neutral-300 px-3 py-2 text-sm shadow-sm focus:border-neutral-500 focus:outline-none"
+              />
+              <datalist id="league-options">
+                {leagues.map((l) => (
+                  <option key={l} value={l} />
+                ))}
+              </datalist>
+              {leagueFilter && (
+                <button
+                  className="mt-1 self-start text-xs font-medium text-neutral-600 underline"
+                  onClick={() => setLeagueFilter('')}
                 >
-                  <input
-                    type="checkbox"
-                    checked={selectedLeagues.includes(comp.id)}
-                    onChange={(e) =>
-                      setSelectedLeagues((prev) =>
-                        e.target.checked
-                          ? [...prev, comp.id]
-                          : prev.filter((id) => id !== comp.id)
-                      )
-                    }
-                  />
-                  {comp.name}
-                </label>
-              ))}
+                  Clear league filter
+                </button>
+              )}
             </div>
+            <label className="flex items-center gap-2 text-sm text-neutral-700">
+              <input
+                type="checkbox"
+                checked={withOddsOnly}
+                onChange={(e) => setWithOddsOnly(e.target.checked)}
+              />
+              Show only fixtures with bookmaker odds
+            </label>
+          </div>
+        )}
+        <div className="mt-4 flex flex-wrap gap-2" role="tablist" aria-label="Match timeframe">
+          {Object.entries(TABS).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={tab === key}
+              className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
+                tab === key
+                  ? 'bg-neutral-900 text-white'
+                  : 'bg-neutral-200 text-neutral-800 hover:bg-neutral-300'
+              }`}
+              onClick={() => setTab(key)}
+            >
+              {label}
+            </button>
           ))}
         </div>
-      ) : (
-        <>
-          {loading && <p>Loading...</p>}
-          {error && <p className="text-red-600">Error: {error}</p>}
-          {!loading && !error && (
-            filteredMatches.length === 0 ? (
-              <p>No matches available.</p>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2">
-                {filteredMatches.map((m) => (
-                  <div
-                    key={m.fixture?.id}
-                    className="border p-2 rounded shadow cursor-pointer relative"
-                    onClick={() =>
-                      setExpandedMatches((prev) => ({
-                        ...prev,
-                        [m.fixture?.id]: !prev[m.fixture?.id]
-                      }))
-                    }
-                  >
-                    <button
-                      className="absolute top-2 right-2 p-1 bg-white border rounded"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAiClick(m);
-                      }}
-                      title="AI Recommendation"
+        {tab === 'settings' ? (
+          <div className="mt-6 space-y-5 rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
+            <p className="text-sm text-neutral-700">
+              Choose which competitions appear across Tipster. We focus on top divisions to
+              keep insights actionable, but you can tailor the feed to your preferences.
+            </p>
+            {Object.entries(COMPETITIONS).map(([country, comps]) => (
+              <div key={country}>
+                <h3 className="text-lg font-semibold text-neutral-800">{country}</h3>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  {comps.map((comp) => (
+                    <label
+                      key={comp.id}
+                      className="flex items-center gap-2 rounded border border-neutral-200 bg-neutral-50 px-3 py-2 text-sm"
                     >
-                      <img src="/ai.svg" alt="AI" className="w-4 h-4" />
-                    </button>
-                    <h3 className="font-semibold">
-                      {m.teams?.home?.name || '-'} vs {m.teams?.away?.name || '-'}
-                    </h3>
-                    <p className="text-sm">{m.league?.name || '-'}</p>
-                    <p className="text-sm">
-                      {m.fixture?.date ? new Date(m.fixture.date).toLocaleString() : '-'}
-                    </p>
-                    <p className="text-sm mb-1">Odds: {renderOdds(m)}</p>
-                    {m.aiPrediction ? (
-                      <div className="italic mb-1" onClick={(e) => e.stopPropagation()}>
-                        <div>
-                          AI Prediction:
-                          <button
-                            className="ml-2 text-blue-600 underline"
-                            onClick={(e) => handleGetPrediction(e, m.fixture.id)}
-                          >
-                            Refresh AI Prediction
-                          </button>
-                        </div>
-                        <Markdown text={m.aiPrediction} />
-                      </div>
-                    ) : (
-                      <button
-                        className="text-blue-600 underline mb-1"
-                        onClick={(e) => handleGetPrediction(e, m.fixture.id)}
-                      >
-                        Get AI Prediction
-                      </button>
-                    )}
-                    {expandedMatches[m.fixture?.id] && (
-                      <div>
-                        <p className="italic mb-2">
-                          Human Prediction: {m.humanPrediction || 'N/A'}
-                        </p>
-                        {renderAllOdds(m)}
-                      </div>
-                    )}
-                  </div>
-                ))}
+                      <input
+                        type="checkbox"
+                        checked={selectedLeagues.includes(comp.id)}
+                        onChange={(e) =>
+                          setSelectedLeagues((prev) =>
+                            e.target.checked
+                              ? [...prev, comp.id]
+                              : prev.filter((id) => id !== comp.id)
+                          )
+                        }
+                      />
+                      {comp.name}
+                    </label>
+                  ))}
+                </div>
               </div>
-            )
-          )}
-        </>
-      )}
+            ))}
+          </div>
+        ) : (
+          <div className="mt-6">
+            {loading && <p className="text-sm text-neutral-600">Loading fixtures…</p>}
+            {error && <p className="text-sm font-medium text-red-600">Error: {error}</p>}
+            {!loading && !error && (
+              filteredMatches.length === 0 ? (
+                <div className="rounded-lg border border-dashed border-neutral-300 bg-white p-6 text-sm text-neutral-700">
+                  We could not find fixtures that match your filters right now. This page still
+                  offers value while feeds refresh—scroll down for methodology insights,
+                  bankroll management advice, and editorial previews that remain relevant even
+                  without live odds.
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2">
+                  {filteredMatches.map((m) => (
+                    <article
+                      key={m.fixture?.id}
+                      className="relative cursor-pointer rounded-lg border border-neutral-200 bg-white p-4 shadow-sm transition hover:shadow-md"
+                      onClick={() =>
+                        setExpandedMatches((prev) => ({
+                          ...prev,
+                          [m.fixture?.id]: !prev[m.fixture?.id]
+                        }))
+                      }
+                    >
+                      <button
+                        type="button"
+                        className="absolute right-3 top-3 rounded border border-neutral-300 bg-white p-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAiClick(m);
+                        }}
+                        title="Open AI recommendation"
+                      >
+                        <img src="/ai.svg" alt="AI" className="h-4 w-4" />
+                      </button>
+                      <h3 className="text-lg font-semibold text-neutral-900">
+                        {m.teams?.home?.name || '-'} vs {m.teams?.away?.name || '-'}
+                      </h3>
+                      <p className="text-sm text-neutral-600">{m.league?.name || '-'}</p>
+                      <p className="mt-1 text-sm text-neutral-600">
+                        {m.fixture?.date
+                          ? new Date(m.fixture.date).toLocaleString()
+                          : 'Kick-off time TBD'}
+                      </p>
+                      <p className="mt-2 text-sm font-medium text-neutral-800">
+                        Headline Odds: {renderOdds(m)}
+                      </p>
+                      {m.aiPrediction ? (
+                        <div
+                          className="mt-2 rounded border border-neutral-200 bg-neutral-50 p-2 text-sm italic text-neutral-700"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="font-semibold not-italic text-neutral-800">
+                              AI Prediction
+                            </span>
+                            <button
+                              type="button"
+                              className="text-xs font-medium text-blue-700 underline"
+                              onClick={(e) => handleGetPrediction(e, m.fixture.id)}
+                            >
+                              Refresh insight
+                            </button>
+                          </div>
+                          <Markdown text={m.aiPrediction} />
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="mt-2 text-sm font-medium text-blue-700 underline"
+                          onClick={(e) => handleGetPrediction(e, m.fixture.id)}
+                        >
+                          Generate AI breakdown
+                        </button>
+                      )}
+                      {expandedMatches[m.fixture?.id] && (
+                        <div className="mt-3 space-y-3 text-sm text-neutral-700">
+                          <p className="italic">
+                            Human Analyst View: {m.humanPrediction || 'Awaiting review'}
+                          </p>
+                          {renderAllOdds(m)}
+                          <div className="rounded border border-neutral-200 bg-neutral-50 p-3">
+                            <h4 className="font-semibold text-neutral-800">
+                              Myanmar Line Conversion
+                            </h4>
+                            <p className="mt-1 text-neutral-700">{renderMyanmarBet(m)}</p>
+                          </div>
+                        </div>
+                      )}
+                    </article>
+                  ))}
+                </div>
+              )
+            )}
+          </div>
+        )}
+      </section>
+
+      <section className="mt-12 grid gap-6 md:grid-cols-3">
+        {QUALITY_PILLARS.map((pillar) => (
+          <article key={pillar.title} className="rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
+            <h3 className="text-xl font-semibold text-neutral-900">{pillar.title}</h3>
+            <p className="mt-3 text-sm leading-relaxed text-neutral-700">
+              {pillar.description}
+            </p>
+            <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-neutral-700">
+              {pillar.bullets.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </article>
+        ))}
+      </section>
+
+      <section className="mt-12 rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
+        <h2 className="text-2xl font-semibold text-neutral-900">How Tipster Builds Its Odds Analysis</h2>
+        <ol className="mt-4 list-decimal space-y-3 pl-6 text-sm leading-relaxed text-neutral-700">
+          <li>
+            <strong>Collect data:</strong> Match odds, injury reports, and recent xG metrics are
+            aggregated every morning from licensed bookmakers and statistical feeds.
+          </li>
+          <li>
+            <strong>Model projections:</strong> We run Poisson-based scoring models and adjust
+            outputs with form guides and travel considerations.
+          </li>
+          <li>
+            <strong>Editorial review:</strong> A human analyst verifies that the model output
+            aligns with tactical realities and writes the final preview in plain language.
+          </li>
+          <li>
+            <strong>Responsible framing:</strong> Each recommendation references stake sizing and
+            includes reminders about risk and bankroll limits.
+          </li>
+        </ol>
+        <aside className="mt-6 rounded border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+          Tipster is an informational resource. We do not accept payments for favourable tips
+          and we reject any ads that attempt to bypass our editorial standards. If you spot a
+          discrepancy in odds or content, please contact us so we can correct the record within
+          one business day.
+        </aside>
+      </section>
+
+      <section className="mt-12 rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
+        <h2 className="text-2xl font-semibold text-neutral-900">Frequently Asked Questions</h2>
+        <div className="mt-4 space-y-3">
+          {FAQ_ITEMS.map((item) => (
+            <details
+              key={item.question}
+              className="group rounded border border-neutral-200 bg-neutral-50 p-4"
+            >
+              <summary className="cursor-pointer text-sm font-semibold text-neutral-900 group-open:text-neutral-700">
+                {item.question}
+              </summary>
+              <p className="mt-2 text-sm leading-relaxed text-neutral-700">{item.answer}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
       {aiModal && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center"
+          className="fixed inset-0 z-40 flex items-center justify-center bg-black/60 p-4"
           onClick={closeAi}
         >
           <div
-            className="bg-white p-4 rounded max-w-lg w-full"
+            className="max-h-[80vh] w-full max-w-2xl overflow-hidden rounded-lg bg-white shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="font-semibold mb-2">AI Recommendation</h2>
-            {aiLoading && <p>Loading...</p>}
-            {aiError && <p className="text-red-600">Error: {aiError}</p>}
-            {!aiLoading && !aiError && (
-              <textarea
-                readOnly
-                className="w-full h-64 border p-2"
-                value={aiResult}
-              />
-            )}
-            <button
-              className="mt-2 px-2 py-1 border rounded"
-              onClick={closeAi}
-            >
-              Close
-            </button>
+            <div className="flex items-center justify-between border-b border-neutral-200 px-4 py-3">
+              <h2 className="text-lg font-semibold text-neutral-900">AI Recommendation</h2>
+              <button
+                type="button"
+                className="text-sm font-medium text-blue-700 underline"
+                onClick={closeAi}
+              >
+                Close
+              </button>
+            </div>
+            <div className="px-4 py-3">
+              {aiLoading && <p className="text-sm text-neutral-600">Generating insight…</p>}
+              {aiError && (
+                <p className="text-sm font-medium text-red-600">Error: {aiError}</p>
+              )}
+              {!aiLoading && !aiError && (
+                <textarea
+                  readOnly
+                  className="h-72 w-full rounded border border-neutral-300 p-3 text-sm leading-relaxed"
+                  value={aiResult}
+                />
+              )}
+            </div>
           </div>
         </div>
       )}
-    </div>
+    </Layout>
   );
 }
 

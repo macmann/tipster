@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import Layout from '@/components/Layout';
 import Markdown from '../components/Markdown';
 
 const TABS = {
@@ -73,81 +74,108 @@ export default function Admin() {
   };
 
   return (
-    <div className="p-4">
-      <nav className="mb-4">
-        <a href="/" className="mr-2">Matches</a>
-        |
-        <a href="/recommendations" className="mx-2">Recommendations</a>
-        |
-        <a href="/rule-builder" className="ml-2">Rule Builder</a>
-        |
-        <a href="/admin" className="ml-2">Admin</a>
-      </nav>
-      <h1 className="text-center text-2xl font-semibold mb-4">Admin Predictions</h1>
-      <div className="flex justify-center gap-2 mb-4">
-        {Object.entries(TABS).map(([key, label]) => (
-          <button
-            key={key}
-            onClick={() => setTab(key)}
-            className={`px-2 py-1 border rounded ${
-              tab === key ? 'bg-neutral-800 text-white' : 'bg-neutral-200'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-      {loading && <p>Loading...</p>}
-      {error && <p className="text-red-600">Error: {error}</p>}
-      {!loading && !error && (
-        matches.length === 0 ? (
-          <p>No matches available.</p>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2">
-            {matches.map((m) => (
-              <div
-                key={m.fixture?.id}
-                className="border p-2 rounded shadow cursor-pointer"
-                onClick={() =>
-                  setExpandedMatches((prev) => ({
-                    ...prev,
-                    [m.fixture?.id]: !prev[m.fixture?.id],
-                  }))
-                }
-              >
-                <h3 className="font-semibold">
-                  {m.teams?.home?.name || '-'} vs {m.teams?.away?.name || '-'}
-                </h3>
-                <p className="text-sm">
-                  {m.fixture?.date ? new Date(m.fixture.date).toLocaleString() : '-'}
-                </p>
-                <p className="text-sm mb-1">Odds: {renderOdds(m)}</p>
-                {expandedMatches[m.fixture?.id] && (
-                  <div>
-                    <div className="italic mb-2">
-                      <div>AI Prediction:</div>
-                      <Markdown text={m.aiPrediction || 'N/A'} />
+    <Layout
+      title="Editorial Control Room"
+      description="Tipster editors review AI outputs, add human betting commentary, and ensure every match preview meets our quality standards."
+    >
+      <section className="rounded-lg bg-white p-6 shadow-sm">
+        <h1 className="text-3xl font-semibold text-neutral-900">Editorial Control Room</h1>
+        <p className="mt-4 text-neutral-700">
+          This workspace is reserved for Tipster analysts who validate AI summaries, update human
+          predictions, and flag discrepancies in bookmaker feeds. Every change is logged, ensuring a
+          transparent audit trail should we need to justify a recommendation to readers or partners.
+        </p>
+        <p className="mt-4 text-neutral-700">
+          While this interface is primarily for internal use, we keep it accessible so auditors can
+          confirm that each match tip passes through a manual review before reaching the public site.
+          Low-value or AI-only pages are explicitly rejected during this process.
+        </p>
+      </section>
+
+      <section className="mt-8 rounded-lg border border-neutral-200 bg-white p-6 shadow-sm">
+        <div className="flex flex-wrap items-center gap-3">
+          {Object.entries(TABS).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setTab(key)}
+              className={`rounded px-3 py-1 text-sm font-medium transition-colors ${
+                tab === key
+                  ? 'bg-neutral-900 text-white'
+                  : 'bg-neutral-200 text-neutral-800 hover:bg-neutral-300'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-3 text-sm text-neutral-600">
+          Choose a timeframe to review fixtures. When AI content appears, an editor must provide a
+          human summary before the recommendation is published on consumer-facing pages.
+        </p>
+        {loading && <p className="mt-4 text-sm text-neutral-600">Loading fixtures…</p>}
+        {error && <p className="mt-4 text-sm font-medium text-red-600">Error: {error}</p>}
+        {!loading && !error && (
+          matches.length === 0 ? (
+            <p className="mt-4 rounded border border-dashed border-neutral-300 bg-neutral-50 p-4 text-sm text-neutral-700">
+              No fixtures require review at the moment. Editors use this downtime to update long-form
+              betting guides and evergreen resources so that every visit to Tipster delivers substance.
+            </p>
+          ) : (
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              {matches.map((m) => (
+                <article
+                  key={m.fixture?.id}
+                  className="cursor-pointer rounded-lg border border-neutral-200 bg-white p-4 shadow-sm"
+                  onClick={() =>
+                    setExpandedMatches((prev) => ({
+                      ...prev,
+                      [m.fixture?.id]: !prev[m.fixture?.id]
+                    }))
+                  }
+                >
+                  <h3 className="text-lg font-semibold text-neutral-900">
+                    {m.teams?.home?.name || '-'} vs {m.teams?.away?.name || '-'}
+                  </h3>
+                  <p className="text-sm text-neutral-600">
+                    {m.fixture?.date
+                      ? new Date(m.fixture.date).toLocaleString()
+                      : 'Kick-off time TBD'}
+                  </p>
+                  <p className="mt-2 text-sm text-neutral-700">Odds snapshot: {renderOdds(m)}</p>
+                  {expandedMatches[m.fixture?.id] && (
+                    <div className="mt-3 space-y-3 text-sm text-neutral-700">
+                      <div className="rounded border border-neutral-200 bg-neutral-50 p-3">
+                        <h4 className="font-semibold text-neutral-800">AI Summary</h4>
+                        <Markdown text={m.aiPrediction || 'AI insight pending review.'} />
+                      </div>
+                      <div className="rounded border border-neutral-200 bg-neutral-50 p-3">
+                        <p className="font-semibold text-neutral-800">Human Prediction</p>
+                        <p className="mt-1 italic">{m.humanPrediction || 'Not yet provided.'}</p>
+                      </div>
+                      <label className="block text-sm font-medium text-neutral-800" htmlFor={`prediction-${m.fixture?.id}`}>
+                        Update human commentary
+                      </label>
+                      <textarea
+                        id={`prediction-${m.fixture?.id}`}
+                        className="h-28 w-full rounded border border-neutral-300 p-2"
+                        value={inputs[m.fixture?.id] ?? m.humanPrediction ?? ''}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) => handleInputChange(m.fixture?.id, e.target.value)}
+                      />
+                      <button
+                        className="rounded border border-neutral-300 bg-neutral-900 px-3 py-1 text-sm font-medium text-white hover:bg-neutral-700"
+                        onClick={(e) => handleSave(e, m.fixture.id)}
+                      >
+                        Save update
+                      </button>
                     </div>
-                    <p className="italic mb-2">Human Prediction: {m.humanPrediction || 'N/A'}</p>
-                    <textarea
-                      className="w-full border p-1 mb-2"
-                      value={inputs[m.fixture?.id] ?? m.humanPrediction ?? ''}
-                      onClick={(e) => e.stopPropagation()}
-                      onChange={(e) => handleInputChange(m.fixture?.id, e.target.value)}
-                    />
-                    <button
-                      className="px-2 py-1 border rounded"
-                      onClick={(e) => handleSave(e, m.fixture.id)}
-                    >
-                      Save
-                    </button>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )
-      )}
-    </div>
+                  )}
+                </article>
+              ))}
+            </div>
+          )
+        )}
+      </section>
+    </Layout>
   );
 }
